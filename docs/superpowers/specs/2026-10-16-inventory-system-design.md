@@ -1,7 +1,7 @@
 # 轻量级进销存出入库管理系统 — 总体设计（Design Spec）
 
 - 日期：2026-10-16
-- 状态：**待确认**（确认后方可进入开发）
+- 状态：**已确认**（6 项关键决策已定，见 §2 / §10；仅同步拓扑 D1、单据修改 D8 待最终确认）
 - 范围：桌面端（Electron + Vue3 + SQLite）、微信小程序、云端（CloudBase / 自建）、端间同步与冲突处理
 
 ---
@@ -22,13 +22,15 @@
 | D1 | 同步拓扑 | 局域网主节点 + 云端中转/备份（见 §3） | 推荐，待确认 |
 | D2 | 主键策略 | **ULID**（端本地生成，全局唯一），不用自增 | 必须如此，否则多端必冲突 |
 | D3 | 同步粒度 | 同步「事实与意图」（单据、库存流水、主数据），**派生状态（库存余额、应收应付余额）各端本地重算，不同步计数** | 核心原则，待确认 |
-| D4 | 成本核算 | **移动加权平均**（随流水本地重算，天然适配离线） | ★ 待确认（FIFO 会显著抬高复杂度） |
-| D5 | 单据状态机 | 草稿 → 已审核（生效、进流水）→ 红冲；**只有已审核影响库存与账** | 待确认 |
-| D6 | 计量单位 | 单计量单位（不做多单位换算） | ★ 待确认 |
+| D4 | 成本核算 | **移动加权平均**（随流水本地重算，天然适配离线） | ✅ 已确认 |
+| D5 | 单据状态机 | 草稿 → 已审核（生效、进流水）→ 红冲；**只有已审核影响库存与账** | ✅ 已确认 |
+| D6 | 计量单位 | **多计量单位**（基本单位 + 换算率，见 §5.0） | ✅ 已确认 |
 | D7 | BOM | 不做（生产入库仅记录成品入库） | 按你原话 |
 | D8 | 单据修改 | 单据 append-only；已审核后只能**红冲**，不可改删 | 待确认 |
-| D9 | 小程序框架 | 原生小程序（依赖少、体积小）；若你更熟 uni-app 也可 | ★ 待确认 |
-| D10 | 云端选型 | 微信云开发 CloudBase（云函数 + 云数据库） | ★ 待确认（备选自建 Node + PostgreSQL） |
+| D9 | 小程序框架 | **原生小程序** | ✅ 已确认 |
+| D10 | 云端选型 | **微信云开发 CloudBase**（云函数 + 云数据库） | ✅ 已确认 |
+| D11 | 负库存 | 由 `sys_config.allow_negative_stock` **开关控制**（0=禁止，1=允许） | ✅ 已确认 |
+| D12 | 审核流程 | 所有单据（订单 / 出入库 / 收付款）均需审核后才成立生效 | ✅ 已确认 |
 
 ---
 
@@ -43,7 +45,7 @@
 | C. 纯局域网、暂不上云 | 全端平等，无中心，靠发现 + 日志合并 | 离线能力最强、零云成本 | 小程序接不进（受白名单限制）；跨地点不可用 |
 | D. 混合：LAN 加速 + 云端汇总 | 双通道并存 | 能力最全 | 复杂度最高，对小团队过度设计 |
 
-**选型：A，并保留向 D 平滑演进的余地。**
+**选型：A（推荐，待最终确认），并保留向 D 平滑演进的余地。**
 关键设计是让**同步引擎与传输层解耦**——业务代码只写入「操作日志」，传输层可以是 LAN HTTP/WebSocket，也可以是云端 API。这样「后续转云端联机」只需切换 transport，不动业务逻辑。
 
 ---
@@ -111,7 +113,7 @@ flowchart LR
 | 同一单据一端「审核」、另一端「红冲」 | 是（状态机冲突） | 按 HLC 定序；后到者做业务校验，若违反状态机（已红冲不可再改）则标记冲突待处理 |
 | 小程序离线开单时该商品已被停用 | 引用完整性 | 允许落单，但单据上标记「商品已停用」警告，不阻断 |
 | 主数据被软删除后仍被引用 | 引用完整性 | 允许引用（软删除只是标记），列表隐藏、历史可查 |
-| 库存允许超卖与否 | 业务规则 | ★ 待确认：是否允许负库存。允许则无需冲突处理；不允许则出库审核时校验可用量，主节点统一裁决 |
+| 库存允许超卖与否 | 业务规则 | 由 `sys_config.allow_negative_stock` 开关控制：`=1` 允许（无需冲突处理）；`=0` 禁止（出库**审核**时校验可用量，不通过则不允许审核生效，由主节点统一裁决） |
 
 **勾稽原则**：库存与余额永远以**本地流水重算**为准（`stock_balance` 由 `stock_ledger` 聚合生成）。因此即使同步顺序错乱，重算结果最终一致（收敛）。
 
@@ -121,6 +123,13 @@ flowchart LR
 
 桌面端 SQLite 与云端逻辑同构（云端用同样的表名；`_sync_cursor` 仅在端侧）。所有业务表除业务字段外**统一追加 §4.2 的同步字段**（下文 DDL 中以 `-- [+同步字段]` 标注）。
 
+### 5.0 公共字段与约定（所有表通用）
+
+- **同步字段**：所有业务表统一追加 §4.2 的字段（下文 DDL 以 `-- [+同步字段]` 标注）。
+- **审核字段**：所有单据表（订单 / 出入库 / 调拨 / 盘点 / 收付款）统一追加 `audited_by TEXT, audited_at INTEGER`；`status` 状态机统一为 `0 草稿 → 1 已审核 → 9 红冲`。**只有 status=1（已审核）才成立生效**，才写库存流水与应收应付。
+- **计量字段**：所有单据明细表统一追加 `unit_id TEXT, factor REAL DEFAULT 1, base_qty REAL`，其中 `factor` = 1 个该单位等于多少个基本单位，`base_qty = qty × factor`。
+- **库存口径**：`stock_ledger` 与 `stock_balance` 的数量、成本金额、移动加权平均单价**一律以商品的基本单位记录**；多单位只发生在单据录入与展示层。
+
 ### 5.1 基础资料（主数据）
 
 ```sql
@@ -129,6 +138,17 @@ CREATE TABLE unit (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, sort INTEGER DEFAULT 0, status INTEGER DEFAULT 1,
   -- [+同步字段]
 );
+
+-- 商品多计量单位换算（基本单位 factor=1；其余单位给出换算率）
+CREATE TABLE product_unit (
+  id TEXT PRIMARY KEY, product_id TEXT NOT NULL, unit_id TEXT NOT NULL,
+  factor REAL NOT NULL DEFAULT 1,          -- 1 个该单位 = factor 个基本单位（如 1 箱 = 12 个）
+  is_base INTEGER DEFAULT 0,               -- 是否基本单位
+  barcode TEXT,                            -- 该单位专属条码（如整箱码）
+  purchase_price REAL, sale_price REAL,    -- 可选：按单位分别定价
+  -- [+同步字段]
+);
+CREATE UNIQUE INDEX ux_product_unit ON product_unit(product_id, unit_id);
 
 -- 商品类别（多级）
 CREATE TABLE product_category (
@@ -145,7 +165,7 @@ CREATE TABLE product (
   name TEXT NOT NULL,
   barcode TEXT,                                   -- 主条码
   spec TEXT, color TEXT,
-  unit_id TEXT,
+  base_unit_id TEXT,                              -- 基本计量单位（库存一律以此单位记录）
   weight REAL, weight_unit TEXT,
   manufacturer TEXT,                              -- 生产厂商（文本或关联）
   default_warehouse_id TEXT, default_location_id TEXT,
@@ -283,7 +303,8 @@ CREATE TABLE purchase_inbound (
 );
 CREATE TABLE purchase_inbound_item (
   id TEXT PRIMARY KEY, inbound_id TEXT NOT NULL, product_id TEXT, location_id TEXT,
-  qty REAL, price REAL, amount REAL, cost_price REAL, remark TEXT,
+  unit_id TEXT, factor REAL DEFAULT 1, qty REAL, base_qty REAL,
+  price REAL, amount REAL, cost_price REAL, remark TEXT,
   -- [+同步字段]
 );
 ```
@@ -313,8 +334,9 @@ CREATE TABLE sales_outbound (
 );
 CREATE TABLE sales_outbound_item (
   id TEXT PRIMARY KEY, outbound_id TEXT NOT NULL, product_id TEXT, location_id TEXT,
-  qty REAL, price REAL, amount REAL,
-  cost_price REAL, cost_amount REAL,          -- 成本快照，供「发货成本表 / 毛利表」直接取用
+  unit_id TEXT, factor REAL DEFAULT 1, qty REAL, base_qty REAL,
+  price REAL, amount REAL,
+  cost_price REAL, cost_amount REAL,          -- 成本快照（按基本单位），供「发货成本表 / 毛利表」直接取用
   remark TEXT,
   -- [+同步字段]
 );
@@ -432,7 +454,10 @@ CREATE TABLE op_log (
 );
 
 -- 系统配置 / 备份记录
-CREATE TABLE sys_config ( id TEXT PRIMARY KEY, cfg_key TEXT UNIQUE, cfg_value TEXT );
+CREATE TABLE sys_config (
+  id TEXT PRIMARY KEY, cfg_key TEXT UNIQUE, cfg_value TEXT
+  -- 关键配置：allow_negative_stock(0/1，默认 0) · backup_keep(默认 7) · theme · auto_launch · lan_port
+);
 CREATE TABLE backup_record (
   id TEXT PRIMARY KEY, file_path TEXT, size INTEGER, kind TEXT, at INTEGER, remark TEXT
 );
@@ -533,11 +558,26 @@ Tab4 我的      我的应收 · 我的单据 · 同步状态 · 切换账号
 
 ---
 
-## 10. 待你确认清单
+## 10. 已确认决策与剩余项
 
-1. D9 小程序框架：原生 vs uni-app/Taro？
-2. D10 云端：微信云开发 CloudBase vs 自建 Node + PostgreSQL？
-3. D4 成本核算：移动加权平均 vs 先进先出（FIFO）？
-4. 是否允许**负库存**（影响出库审核与冲突裁决）？
-5. D6 是否需要**多计量单位**（如 箱↔个 换算）？
-6. 单据是否需要「审核」环节（还是录入即生效）？
+**已确认（2026-10-16）**
+
+1. D9 小程序框架 → **原生小程序**
+2. D10 云端 → **微信云开发 CloudBase**
+3. D4 成本核算 → **移动加权平均**
+4. D11 负库存 → **由 `sys_config.allow_negative_stock` 开关控制**
+5. D6 计量单位 → **多计量单位换算（基本单位 + 换算率）**
+6. D12 审核 → **所有单据审核后才成立生效**
+
+**本次决策带来的结构变更**
+
+- 新增表 `product_unit`（商品多单位换算：`product_id + unit_id + factor + is_base + barcode`）。
+- `product.unit_id` → `product.base_unit_id`（基本单位）。
+- 所有单据明细表追加 `unit_id / factor / base_qty`；库存流水与余额一律以**基本单位**记账。
+- 所有单据表追加 `audited_by / audited_at`，`status` 统一为 `0 草稿 → 1 已审核 → 9 红冲`。
+- `sys_config` 新增 `allow_negative_stock`（0=禁止，默认；1=允许）。禁止时出库**审核**校验可用量。
+
+**剩余待确认**
+
+1. D1 同步拓扑：是否确认采用「局域网主节点 + 云端中转」（§3 方案 A）？
+2. D8 单据修改：已审核后是否一律只能红冲、不可改删？
