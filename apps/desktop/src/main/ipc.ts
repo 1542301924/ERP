@@ -38,6 +38,18 @@ import {
   type DocSaveInput,
 } from './services/documents';
 import { buildExportBuffer, buildTemplateBuffer, importFromBuffer, listTemplates } from './services/excel';
+import { alertList, listBalance, listLedger, recompute as recomputeStock } from './services/stock';
+import {
+  audit as auditStockDoc,
+  get as getStockDoc,
+  list as listStockDocs,
+  reverse as reverseStockDoc,
+  save as saveStockDoc,
+  unaudit as unauditStockDoc,
+  type StockDocFilter,
+  type StockDocKind,
+  type StockDocSaveInput,
+} from './services/stock-docs';
 
 export interface MutateRequest {
   op: 'insert' | 'update' | 'delete';
@@ -133,6 +145,40 @@ export function registerIpcHandlers(db: SqlDatabase): void {
 
   ipcMain.handle('doc:transfer', (_event, orderKind: 'purchase_order' | 'sales_order', orderId: string) =>
     transferDoc(db, repo, docCtx, orderKind, orderId),
+  );
+
+  // ---------------- 库存（P3） ----------------
+
+  ipcMain.handle('stock:recompute', (_event, filter?: { productId?: string; warehouseId?: string }) =>
+    recomputeStock(db, filter ?? {}),
+  );
+
+  ipcMain.handle('stock:balance', (_event, filter?: Parameters<typeof listBalance>[1]) => listBalance(db, filter));
+
+  ipcMain.handle('stock:ledger', (_event, filter?: Parameters<typeof listLedger>[1]) => listLedger(db, filter));
+
+  ipcMain.handle('stock:alert', () => alertList(db));
+
+  ipcMain.handle('stock_doc:list', (_event, kind: StockDocKind, filter?: StockDocFilter) =>
+    listStockDocs(db, kind, filter),
+  );
+
+  ipcMain.handle('stock_doc:get', (_event, kind: StockDocKind, id: string) => getStockDoc(db, kind, id));
+
+  ipcMain.handle('stock_doc:save', (_event, kind: StockDocKind, input: StockDocSaveInput) =>
+    saveStockDoc(db, repo, docCtx, kind, input),
+  );
+
+  ipcMain.handle('stock_doc:audit', (_event, kind: StockDocKind, id: string) =>
+    auditStockDoc(db, repo, docCtx, kind, id),
+  );
+
+  ipcMain.handle('stock_doc:unaudit', (_event, kind: StockDocKind, id: string) =>
+    unauditStockDoc(db, repo, docCtx, kind, id),
+  );
+
+  ipcMain.handle('stock_doc:reverse', (_event, kind: StockDocKind, id: string) =>
+    reverseStockDoc(db, repo, docCtx, kind, id),
   );
 
   // ---------------- Excel ----------------

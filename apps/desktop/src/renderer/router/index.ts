@@ -20,6 +20,11 @@ import ProductionInView from '../views/docs/ProductionInView.vue';
 import SalesOrdersView from '../views/docs/SalesOrdersView.vue';
 import SalesOutboundView from '../views/docs/SalesOutboundView.vue';
 import ReturnsView from '../views/docs/ReturnsView.vue';
+import RealtimeStockView from '../views/stock/RealtimeStockView.vue';
+import LedgerView from '../views/stock/LedgerView.vue';
+import AlertsView from '../views/stock/AlertsView.vue';
+import TransferView from '../views/stock/TransferView.vue';
+import CheckView from '../views/stock/CheckView.vue';
 
 /** P1 主数据页面（基础资料 10 个菜单）。其余分组仍走 Placeholder。 */
 const basicViews: Record<string, Component> = {
@@ -44,6 +49,15 @@ const docViews: Record<string, Component> = {
   '/sales/orders': SalesOrdersView,
   '/sales/outbound': SalesOutboundView,
   '/sales/returns': ReturnsView,
+};
+
+/** P3 库存页面（实时库存 / 流水 / 预警 / 调拨 / 盘点）。 */
+const stockViews: Record<string, Component> = {
+  '/stock/realtime': RealtimeStockView,
+  '/stock/ledger': LedgerView,
+  '/stock/alerts': AlertsView,
+  '/stock/transfer': TransferView,
+  '/stock/check': CheckView,
 };
 
 /** 左侧菜单结构（严格按设计文档 §6.1 页面结构）。 */
@@ -132,7 +146,7 @@ export const MENU: MenuGroup[] = [
 
 const placeholderRoutes: RouteRecordRaw[] = MENU.flatMap((group) =>
   group.items.map((item) => {
-    const component = docViews[item.path] ?? basicViews[item.path] ?? Placeholder;
+    const component = docViews[item.path] ?? stockViews[item.path] ?? basicViews[item.path] ?? Placeholder;
     return {
       path: item.path.slice(1),
       name: item.path,

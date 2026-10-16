@@ -24,6 +24,7 @@ import type { SqlDatabase } from '../db/sqlite';
 import { nextCode } from './code-rule';
 import { assertAvailable, avgCost, round2 } from './inventory';
 import { writeOpLog } from './op-log';
+import { recomputeBalance } from './stock';
 
 /** 支持的单据类型。 */
 export type DocKind = 'purchase_order' | 'purchase_inbound' | 'sales_order' | 'sales_outbound';
@@ -225,6 +226,18 @@ function resolveFactor(db: SqlDatabase, productId: string, unitId: string | null
     if (row && row.factor !== undefined && row.factor !== null) return Number(row.factor);
   }
   return Number(inputFactor ?? 1);
+}
+
+/** 审核 / 取消审核 / 红冲后，按受影响的 (商品, 仓库) 维度触发 stock_balance 增量重算。 */
+function recomputeScoped(db: SqlDatabase, rows: Row[], warehouseId: string | null): void {
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const productId = String(row.product_id);
+    const key = `${productId}|${warehouseId ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    recomputeBalance(db, { productId, warehouseId: warehouseId ?? undefined });
+  }
 }
 
 /** 服务端权威地计算明细行（base_qty / amount）。 */
@@ -541,6 +554,7 @@ export function audit(db: SqlDatabase, repo: Repository, ctx: DocContext, kind: 
       device_id: ctx.deviceId,
       at: now,
     });
+    recomputeScoped(db, items, warehouseId);
     return updated;
   });
 }
@@ -603,6 +617,7 @@ export function unaudit(db: SqlDatabase, repo: Repository, ctx: DocContext, kind
       device_id: ctx.deviceId,
       at: now,
     });
+    recomputeScoped(db, ledgerRows, (doc.warehouse_id as string | null) ?? null);
     return updated;
   });
 }
@@ -738,6 +753,7 @@ export function reverse(
       at: now,
     });
 
+    recomputeScoped(db, originalLedger, (doc.warehouse_id as string | null) ?? null);
     return { doc: originalUpdated, reversalDocId: rDoc.id as string };
   });
 }

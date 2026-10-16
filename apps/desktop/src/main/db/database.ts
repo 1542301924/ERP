@@ -11,24 +11,47 @@ import { dirname, join } from 'node:path';
 import { newId, SysConfigKey } from '@inventory/shared';
 import { createDatabase, type SqlDatabase } from './sqlite';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const SCHEMA_SQL = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 
 /** 需要新增 `reversal_of` 列的单据表（硬编码字面量，不接受外部输入）。 */
-const REVERSAL_OF_TABLES = ['purchase_order', 'purchase_inbound', 'sales_order', 'sales_outbound'] as const;
+const REVERSAL_OF_TABLES = [
+  'purchase_order',
+  'purchase_inbound',
+  'sales_order',
+  'sales_outbound',
+  'stock_transfer',
+  'stock_check',
+] as const;
+
+/** 需要补齐的历史缺失列（表名 / 列名 / 定义，均为硬编码字面量）。 */
+const ADDED_COLUMNS: ReadonlyArray<{ table: string; column: string; definition: string }> = [
+  { table: 'stock_check_item', column: 'qty', definition: 'REAL' },
+];
+
+/** 幂等判断某表是否已含某列。 */
+function hasColumn(db: SqlDatabase, table: string, column: string): boolean {
+  const columns = db.prepare('SELECT name FROM pragma_table_info(?)').all(table);
+  return columns.some((c) => c.name === column);
+}
 
 /**
- * 幂等迁移：为四类单据表补齐 `reversal_of` 列。
+ * 幂等迁移：为单据表补齐 `reversal_of` 列。
  *
  * 依据 `pragma_table_info` 的列检查（而非 schema_version 值）决定是否需要 ALTER，
  * 因此即使旧库中 `sys_config.schema_version` 仍为 '1' 也能正确升级。
  */
 function migrateReversalOf(db: SqlDatabase): void {
   for (const table of REVERSAL_OF_TABLES) {
-    const columns = db.prepare('SELECT name FROM pragma_table_info(?)').all(table);
-    const hasColumn = columns.some((c) => c.name === 'reversal_of');
-    if (!hasColumn) db.exec(`ALTER TABLE ${table} ADD COLUMN reversal_of TEXT`);
+    if (!hasColumn(db, table, 'reversal_of')) db.exec(`ALTER TABLE ${table} ADD COLUMN reversal_of TEXT`);
+  }
+}
+
+/** 幂等迁移：补齐其余历史缺失列（如 stock_check_item.qty）。 */
+function migrateAddedColumns(db: SqlDatabase): void {
+  for (const { table, column, definition } of ADDED_COLUMNS) {
+    if (!hasColumn(db, table, column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   }
 }
 
@@ -45,6 +68,7 @@ export function initSchema(db: SqlDatabase): void {
   db.transaction(() => {
     db.exec(SCHEMA_SQL);
     migrateReversalOf(db);
+    migrateAddedColumns(db);
     if (getSysConfig(db, SysConfigKey.SCHEMA_VERSION) === null) {
       setSysConfig(db, SysConfigKey.SCHEMA_VERSION, String(SCHEMA_VERSION));
     }

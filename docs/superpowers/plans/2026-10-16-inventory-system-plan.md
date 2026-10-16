@@ -109,6 +109,8 @@ P7 之前的所有阶段都**只读写本地 SQLite**，但所有写操作从 P0
 
 ## 5. P3 库存
 
+**状态**：✅ 已完成（2026-10-16）。桌面端「库存」5 个页面（实时库存查询 / 库存流水 / 库存预警 / 库存调拨 / 库存盘点）+ 库存重算引擎（幂等、按维度增量重算）+ 库存单据引擎（调拨 / 盘点）可用；P2 单据审核 / 取消审核 / 红冲已挂接重算钩子；`pnpm -r typecheck` 通过；`pnpm --filter @inventory/desktop test` 54 项全通过（含本阶段 12 项库存场景）；`pnpm build` 通过。
+
 **任务**
 
 1. 库存重算引擎：`recomputeBalance(productId?, warehouseId?)` —— 由 `stock_ledger` 按时间序重放，计算 `qty / locked_qty / avail_qty / cost_amount / avg_cost`（**移动加权平均**），写入 `stock_balance`。审核、红冲、同步 apply 后触发增量重算。

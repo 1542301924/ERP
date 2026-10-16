@@ -79,6 +79,35 @@ const api = {
     transfer: (orderKind: string, orderId: string) => ipcRenderer.invoke('doc:transfer', orderKind, orderId),
   },
 
+  // ---------------- 库存（P3） ----------------
+  stock: {
+    /** 重算库存余额（可按商品 / 仓库增量重算） */
+    recompute: (filter?: { productId?: string; warehouseId?: string }) =>
+      ipcRenderer.invoke('stock:recompute', filter),
+    /** 实时库存查询 */
+    balance: (filter?: unknown) => ipcRenderer.invoke('stock:balance', filter),
+    /** 库存流水查询 */
+    ledger: (filter?: unknown) => ipcRenderer.invoke('stock:ledger', filter),
+    /** 库存预警列表 */
+    alert: () => ipcRenderer.invoke('stock:alert'),
+  },
+
+  // ---------------- 库存单据（调拨 / 盘点） ----------------
+  stockDoc: {
+    /** 单据列表（可按关键字 / 状态 / 日期区间过滤） */
+    list: (kind: string, filter?: unknown) => ipcRenderer.invoke('stock_doc:list', kind, filter),
+    /** 单据详情：表头 + 明细 */
+    get: (kind: string, id: string) => ipcRenderer.invoke('stock_doc:get', kind, id),
+    /** 保存单据（新建 / 修改草稿） */
+    save: (kind: string, input: unknown) => ipcRenderer.invoke('stock_doc:save', kind, input),
+    /** 审核单据 */
+    audit: (kind: string, id: string) => ipcRenderer.invoke('stock_doc:audit', kind, id),
+    /** 取消审核 */
+    unaudit: (kind: string, id: string) => ipcRenderer.invoke('stock_doc:unaudit', kind, id),
+    /** 红冲 */
+    reverse: (kind: string, id: string) => ipcRenderer.invoke('stock_doc:reverse', kind, id),
+  },
+
   // ---------------- Excel ----------------
   excel: {
     /** 列出模板 */

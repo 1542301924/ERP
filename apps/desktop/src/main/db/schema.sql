@@ -589,6 +589,7 @@ CREATE TABLE IF NOT EXISTS stock_transfer (
   remark TEXT,
   audited_by TEXT,
   audited_at INTEGER,
+  reversal_of TEXT,            -- 红冲单指向被红冲的原单据 id
   -- [+ 同步字段 §4.2]
   created_by    TEXT NOT NULL,
   created_at    INTEGER NOT NULL,
@@ -636,6 +637,7 @@ CREATE TABLE IF NOT EXISTS stock_check (
   remark TEXT,
   audited_by TEXT,
   audited_at INTEGER,
+  reversal_of TEXT,            -- 红冲单指向被红冲的原单据 id
   -- [+ 同步字段 §4.2]
   created_by    TEXT NOT NULL,
   created_at    INTEGER NOT NULL,
@@ -658,6 +660,7 @@ CREATE TABLE IF NOT EXISTS stock_check_item (
   real_qty REAL,
   diff_qty REAL,
   -- [+ 单据明细计量字段 §5.0]
+  qty REAL,
   unit_id TEXT,
   factor REAL DEFAULT 1,
   base_qty REAL,
