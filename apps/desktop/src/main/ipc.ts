@@ -50,6 +50,27 @@ import {
   type StockDocKind,
   type StockDocSaveInput,
 } from './services/stock-docs';
+import {
+  accountFlow,
+  listAccounts,
+  listBills,
+  openBills,
+  recomputeAccountBalance,
+  type AccountFlowFilter,
+  type BillFilter,
+  type BillKind,
+  type SettleDocFilter,
+  type SettleDocKind,
+} from './services/finance';
+import {
+  audit as auditSettleDoc,
+  get as getSettleDoc,
+  list as listSettleDocs,
+  reverse as reverseSettleDoc,
+  save as saveSettleDoc,
+  unaudit as unauditSettleDoc,
+  type SettleDocSaveInput,
+} from './services/finance-docs';
 
 export interface MutateRequest {
   op: 'insert' | 'update' | 'delete';
@@ -180,6 +201,40 @@ export function registerIpcHandlers(db: SqlDatabase): void {
   ipcMain.handle('stock_doc:reverse', (_event, kind: StockDocKind, id: string) =>
     reverseStockDoc(db, repo, docCtx, kind, id),
   );
+
+  // ---------------- 财务（P4） ----------------
+
+  ipcMain.handle('finance:listBills', (_event, kind: BillKind, filter?: BillFilter) => listBills(db, kind, filter));
+
+  ipcMain.handle('finance:openBills', (_event, kind: BillKind, partnerId: string) => openBills(db, kind, partnerId));
+
+  ipcMain.handle('finance:listSettle', (_event, kind: SettleDocKind, filter?: SettleDocFilter) =>
+    listSettleDocs(db, kind, filter),
+  );
+
+  ipcMain.handle('finance:getSettle', (_event, kind: SettleDocKind, id: string) => getSettleDoc(db, kind, id));
+
+  ipcMain.handle('finance:saveSettle', (_event, kind: SettleDocKind, input: SettleDocSaveInput) =>
+    saveSettleDoc(db, repo, docCtx, kind, input),
+  );
+
+  ipcMain.handle('finance:auditSettle', (_event, kind: SettleDocKind, id: string) =>
+    auditSettleDoc(db, repo, docCtx, kind, id),
+  );
+
+  ipcMain.handle('finance:unauditSettle', (_event, kind: SettleDocKind, id: string) =>
+    unauditSettleDoc(db, repo, docCtx, kind, id),
+  );
+
+  ipcMain.handle('finance:reverseSettle', (_event, kind: SettleDocKind, id: string) =>
+    reverseSettleDoc(db, repo, docCtx, kind, id),
+  );
+
+  ipcMain.handle('finance:accounts', () => listAccounts(db));
+
+  ipcMain.handle('finance:flow', (_event, filter?: AccountFlowFilter) => accountFlow(db, filter));
+
+  ipcMain.handle('finance:recomputeBalances', () => ({ rows: recomputeAccountBalance(db) }));
 
   // ---------------- Excel ----------------
 

@@ -25,6 +25,9 @@ import LedgerView from '../views/stock/LedgerView.vue';
 import AlertsView from '../views/stock/AlertsView.vue';
 import TransferView from '../views/stock/TransferView.vue';
 import CheckView from '../views/stock/CheckView.vue';
+import ReceivableView from '../views/finance/ReceivableView.vue';
+import PayableView from '../views/finance/PayableView.vue';
+import AccountsView from '../views/finance/AccountsView.vue';
 
 /** P1 主数据页面（基础资料 10 个菜单）。其余分组仍走 Placeholder。 */
 const basicViews: Record<string, Component> = {
@@ -58,6 +61,13 @@ const stockViews: Record<string, Component> = {
   '/stock/alerts': AlertsView,
   '/stock/transfer': TransferView,
   '/stock/check': CheckView,
+};
+
+/** P4 财务页面（应收 / 应付 / 资金账户流水）。 */
+const financeViews: Record<string, Component> = {
+  '/finance/receivable': ReceivableView,
+  '/finance/payable': PayableView,
+  '/finance/accounts': AccountsView,
 };
 
 /** 左侧菜单结构（严格按设计文档 §6.1 页面结构）。 */
@@ -146,7 +156,8 @@ export const MENU: MenuGroup[] = [
 
 const placeholderRoutes: RouteRecordRaw[] = MENU.flatMap((group) =>
   group.items.map((item) => {
-    const component = docViews[item.path] ?? stockViews[item.path] ?? basicViews[item.path] ?? Placeholder;
+    const component =
+      docViews[item.path] ?? stockViews[item.path] ?? financeViews[item.path] ?? basicViews[item.path] ?? Placeholder;
     return {
       path: item.path.slice(1),
       name: item.path,

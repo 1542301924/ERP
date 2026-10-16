@@ -108,6 +108,32 @@ const api = {
     reverse: (kind: string, id: string) => ipcRenderer.invoke('stock_doc:reverse', kind, id),
   },
 
+  // ---------------- 财务（P4） ----------------
+  finance: {
+    /** 应收 / 应付单列表（含往来单位、来源单号、已收已付与未结清余额） */
+    listBills: (kind: string, filter?: unknown) => ipcRenderer.invoke('finance:listBills', kind, filter),
+    /** 某往来单位下「可核销」的往来单（未结清余额 > 0） */
+    openBills: (kind: string, partnerId: string) => ipcRenderer.invoke('finance:openBills', kind, partnerId),
+    /** 收款单 / 付款单列表 */
+    listSettle: (kind: string, filter?: unknown) => ipcRenderer.invoke('finance:listSettle', kind, filter),
+    /** 收付款单详情：表头 + 核销明细 */
+    getSettle: (kind: string, id: string) => ipcRenderer.invoke('finance:getSettle', kind, id),
+    /** 保存收付款单（新建 / 修改草稿） */
+    saveSettle: (kind: string, input: unknown) => ipcRenderer.invoke('finance:saveSettle', kind, input),
+    /** 审核收付款单（核销生效并重算账户余额） */
+    auditSettle: (kind: string, id: string) => ipcRenderer.invoke('finance:auditSettle', kind, id),
+    /** 取消审核 */
+    unauditSettle: (kind: string, id: string) => ipcRenderer.invoke('finance:unauditSettle', kind, id),
+    /** 红冲 */
+    reverseSettle: (kind: string, id: string) => ipcRenderer.invoke('finance:reverseSettle', kind, id),
+    /** 资金账户列表（含派生余额） */
+    accounts: () => ipcRenderer.invoke('finance:accounts'),
+    /** 资金账户流水（由已审核收付款单合并派生） */
+    flow: (filter?: unknown) => ipcRenderer.invoke('finance:flow', filter),
+    /** 全量重算资金账户余额（对账兜底），返回更新的账户数 */
+    recomputeBalances: () => ipcRenderer.invoke('finance:recomputeBalances'),
+  },
+
   // ---------------- Excel ----------------
   excel: {
     /** 列出模板 */

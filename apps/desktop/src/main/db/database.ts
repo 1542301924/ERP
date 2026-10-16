@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path';
 import { newId, SysConfigKey } from '@inventory/shared';
 import { createDatabase, type SqlDatabase } from './sqlite';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const SCHEMA_SQL = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 
@@ -23,11 +23,15 @@ const REVERSAL_OF_TABLES = [
   'sales_outbound',
   'stock_transfer',
   'stock_check',
+  'ap_payment',
+  'ar_receipt',
 ] as const;
 
 /** 需要补齐的历史缺失列（表名 / 列名 / 定义，均为硬编码字面量）。 */
 const ADDED_COLUMNS: ReadonlyArray<{ table: string; column: string; definition: string }> = [
   { table: 'stock_check_item', column: 'qty', definition: 'REAL' },
+  { table: 'ap_payment', column: 'status', definition: 'INTEGER DEFAULT 0' },
+  { table: 'ar_receipt', column: 'status', definition: 'INTEGER DEFAULT 0' },
 ];
 
 /** 幂等判断某表是否已含某列。 */

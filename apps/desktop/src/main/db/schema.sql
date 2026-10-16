@@ -732,6 +732,8 @@ CREATE TABLE IF NOT EXISTS ap_payment (
   remark TEXT,
   audited_by TEXT,
   audited_at INTEGER,
+  status INTEGER DEFAULT 0,           -- 0 待审核 → 1 已审核 → 9 已红冲
+  reversal_of TEXT,                   -- 红冲单指向原单
   -- [+ 同步字段 §4.2]
   created_by    TEXT NOT NULL,
   created_at    INTEGER NOT NULL,
@@ -795,6 +797,8 @@ CREATE TABLE IF NOT EXISTS ar_receipt (
   remark TEXT,
   audited_by TEXT,
   audited_at INTEGER,
+  status INTEGER DEFAULT 0,           -- 0 待审核 → 1 已审核 → 9 已红冲
+  reversal_of TEXT,                   -- 红冲单指向原单
   -- [+ 同步字段 §4.2]
   created_by    TEXT NOT NULL,
   created_at    INTEGER NOT NULL,

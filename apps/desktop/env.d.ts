@@ -103,6 +103,32 @@ export interface WindowApi {
     reverse(kind: StockDocKind, id: string): Promise<{ doc: Record<string, unknown>; reversalDocId: string }>;
   };
 
+  // ---------------- 财务（P4） ----------------
+  finance: {
+    /** 应收 / 应付单列表 */
+    listBills(kind: BillKind, filter?: BillFilter): Promise<BillRow[]>;
+    /** 某往来单位下「可核销」的往来单（未结清余额 > 0） */
+    openBills(kind: BillKind, partnerId: string): Promise<BillRow[]>;
+    /** 收款单 / 付款单列表 */
+    listSettle(kind: SettleDocKind, filter?: SettleDocFilter): Promise<SettleDocRow[]>;
+    /** 收付款单详情：表头 + 核销明细；不存在时为 null */
+    getSettle(kind: SettleDocKind, id: string): Promise<SettleDocGetResult | null>;
+    /** 保存收付款单（新建 / 修改草稿） */
+    saveSettle(kind: SettleDocKind, input: SettleDocSaveInput): Promise<Record<string, unknown>>;
+    /** 审核收付款单 */
+    auditSettle(kind: SettleDocKind, id: string): Promise<Record<string, unknown>>;
+    /** 取消审核 */
+    unauditSettle(kind: SettleDocKind, id: string): Promise<Record<string, unknown>>;
+    /** 红冲，返回原单（已置 9）与反向单 id */
+    reverseSettle(kind: SettleDocKind, id: string): Promise<{ doc: Record<string, unknown>; reversalDocId: string }>;
+    /** 资金账户列表（含派生余额） */
+    accounts(): Promise<Record<string, unknown>[]>;
+    /** 资金账户流水 */
+    flow(filter?: AccountFlowFilter): Promise<AccountFlowRow[]>;
+    /** 全量重算资金账户余额，返回更新的账户数 */
+    recomputeBalances(): Promise<{ rows: number }>;
+  };
+
   // ---------------- Excel ----------------
   excel: {
     templates(): Promise<{ id: string; name: string; importable: boolean }[]>;
@@ -311,6 +337,122 @@ export interface StockDocSaveInput {
 export interface StockDocGetResult {
   doc: Record<string, unknown>;
   items: Record<string, unknown>[];
+}
+
+// ---------------- 财务（P4） ----------------
+
+/** 往来单类型：应收 / 应付。 */
+export type BillKind = 'ar' | 'ap';
+
+/** 收付款单类型。 */
+export type SettleDocKind = 'ar_receipt' | 'ap_payment';
+
+/** 结清状态（由金额派生）。 */
+export type SettleState = 'unsettled' | 'partial' | 'settled';
+
+/** 往来单过滤条件。 */
+export interface BillFilter {
+  keyword?: string;
+  partnerId?: string;
+  settleState?: SettleState;
+  onlyOutstanding?: boolean;
+  startDate?: number;
+  endDate?: number;
+  limit?: number;
+}
+
+/** 往来单行（单据 + 派生展示字段 + 未结清余额）。 */
+export interface BillRow {
+  id: string;
+  partner_id: string;
+  partner_name: string | null;
+  source_doc_no: string | null;
+  amount: number;
+  settled_amount: number;
+  remaining: number;
+  settle_state: SettleState;
+  status: number;
+  due_date: number | null;
+  created_at: number;
+}
+
+/** 收付款单过滤条件。 */
+export interface SettleDocFilter {
+  keyword?: string;
+  partnerId?: string;
+  accountId?: string;
+  status?: number;
+  startDate?: number;
+  endDate?: number;
+  limit?: number;
+}
+
+/** 收付款单行。 */
+export interface SettleDocRow {
+  id: string;
+  doc_no: string | null;
+  partner_id: string | null;
+  partner_name: string | null;
+  account_id: string | null;
+  account_name: string | null;
+  amount: number;
+  applied_amount: number;
+  date: number | null;
+  method: string | null;
+  remark: string | null;
+  status: number;
+  reversal_of: string | null;
+}
+
+/** 核销明细行。 */
+export interface SettleApplyRow {
+  id: string;
+  bill_id: string | null;
+  bill_amount: number;
+  bill_settled: number;
+  bill_source_doc_no: string | null;
+  bill_created_at: number | null;
+  amount: number;
+}
+
+/** 收付款单详情。 */
+export interface SettleDocGetResult {
+  doc: Record<string, unknown>;
+  applies: SettleApplyRow[];
+}
+
+/** 收付款单保存入参。 */
+export interface SettleDocSaveInput {
+  id?: string;
+  partner_id?: string | null;
+  account_id?: string | null;
+  amount?: number;
+  date?: number;
+  method?: string | null;
+  remark?: string | null;
+  applies: Array<{ bill_id: string; amount: number }>;
+}
+
+/** 资金账户流水过滤条件。 */
+export interface AccountFlowFilter {
+  accountId?: string;
+  direction?: 'in' | 'out';
+  startDate?: number;
+  endDate?: number;
+  limit?: number;
+}
+
+/** 资金账户流水行（由已审核收付款单派生）。 */
+export interface AccountFlowRow {
+  id: string;
+  date: number | null;
+  account_id: string | null;
+  account_name: string | null;
+  direction: 'in' | 'out';
+  doc_no: string | null;
+  partner_name: string | null;
+  amount: number;
+  status: number;
 }
 
 declare global {
