@@ -1,0 +1,10 @@
+<script setup lang="ts">
+import { useThemeStore } from './stores/theme';
+
+const theme = useThemeStore();
+theme.apply();
+</script>
+
+<template>
+  <router-view />
+</template>

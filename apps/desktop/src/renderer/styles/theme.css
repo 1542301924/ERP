@@ -1,0 +1,83 @@
+:root {
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --text: #1f2329;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --brand: #1a73e8;
+  --header-bg: #ffffff;
+  --aside-bg: #ffffff;
+}
+
+[data-theme='dark'] {
+  --bg: #14161a;
+  --panel: #1c1f26;
+  --text: #e6e8eb;
+  --text-muted: #9aa4b2;
+  --border: #2a2f39;
+  --brand: #4c8dff;
+  --header-bg: #1c1f26;
+  --aside-bg: #1c1f26;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.layout {
+  height: 100vh;
+}
+
+.aside {
+  background: var(--aside-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.menu {
+  flex: 1;
+  border-right: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.header .title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.main {
+  background: var(--bg);
+}
+
+.card-gap {
+  margin-bottom: 16px;
+}
