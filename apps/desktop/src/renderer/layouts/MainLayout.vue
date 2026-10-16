@@ -18,7 +18,7 @@ const isDark = computed({
 <template>
   <el-container class="layout">
     <el-aside width="240px" class="aside">
-      <div class="brand">轻量级进销存</div>
+      <div class="brand">轻松进销存</div>
       <el-menu :default-active="active" router class="menu">
         <el-menu-item index="/workbench">工作台</el-menu-item>
         <el-sub-menu v-for="group in MENU" :key="group.title" :index="group.title">

@@ -16,9 +16,9 @@ function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: '轻量级进销存',
+    title: '轻松进销存',
     webPreferences: {
-      preload: join(currentDir, '../preload/index.js'),
+      preload: join(currentDir, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
