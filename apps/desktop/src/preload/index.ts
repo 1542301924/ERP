@@ -61,6 +61,24 @@ const api = {
   /** 生成下一个编号 */
   nextCode: (target: string) => ipcRenderer.invoke('code:next', target),
 
+  // ---------------- 单据（出入库） ----------------
+  doc: {
+    /** 单据列表（可按关键字 / 状态 / 类型 / 日期区间过滤） */
+    list: (kind: string, filter?: unknown) => ipcRenderer.invoke('doc:list', kind, filter),
+    /** 单据详情：表头 + 明细 + 往来单 */
+    get: (kind: string, id: string) => ipcRenderer.invoke('doc:get', kind, id),
+    /** 保存单据（新建 / 修改草稿） */
+    save: (kind: string, input: unknown) => ipcRenderer.invoke('doc:save', kind, input),
+    /** 审核单据 */
+    audit: (kind: string, id: string) => ipcRenderer.invoke('doc:audit', kind, id),
+    /** 取消审核 */
+    unaudit: (kind: string, id: string) => ipcRenderer.invoke('doc:unaudit', kind, id),
+    /** 红冲 */
+    reverse: (kind: string, id: string) => ipcRenderer.invoke('doc:reverse', kind, id),
+    /** 订单转出入库单 */
+    transfer: (orderKind: string, orderId: string) => ipcRenderer.invoke('doc:transfer', orderKind, orderId),
+  },
+
   // ---------------- Excel ----------------
   excel: {
     /** 列出模板 */

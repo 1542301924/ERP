@@ -13,6 +13,13 @@ import SuppliersView from '../views/basic/SuppliersView.vue';
 import DepartmentsView from '../views/basic/DepartmentsView.vue';
 import CodeRulesView from '../views/basic/CodeRulesView.vue';
 import ExcelCenterView from '../views/basic/ExcelCenterView.vue';
+import PurchaseOrdersView from '../views/docs/PurchaseOrdersView.vue';
+import PurchaseInboundView from '../views/docs/PurchaseInboundView.vue';
+import DeptUseView from '../views/docs/DeptUseView.vue';
+import ProductionInView from '../views/docs/ProductionInView.vue';
+import SalesOrdersView from '../views/docs/SalesOrdersView.vue';
+import SalesOutboundView from '../views/docs/SalesOutboundView.vue';
+import ReturnsView from '../views/docs/ReturnsView.vue';
 
 /** P1 主数据页面（基础资料 10 个菜单）。其余分组仍走 Placeholder。 */
 const basicViews: Record<string, Component> = {
@@ -26,6 +33,17 @@ const basicViews: Record<string, Component> = {
   '/basic/departments': DepartmentsView,
   '/basic/code-rules': CodeRulesView,
   '/basic/excel': ExcelCenterView,
+};
+
+/** P2 单据页面（采购 / 销售 出入库链路）。 */
+const docViews: Record<string, Component> = {
+  '/purchase/orders': PurchaseOrdersView,
+  '/purchase/inbound': PurchaseInboundView,
+  '/purchase/dept-use': DeptUseView,
+  '/purchase/production-in': ProductionInView,
+  '/sales/orders': SalesOrdersView,
+  '/sales/outbound': SalesOutboundView,
+  '/sales/returns': ReturnsView,
 };
 
 /** 左侧菜单结构（严格按设计文档 §6.1 页面结构）。 */
@@ -114,7 +132,7 @@ export const MENU: MenuGroup[] = [
 
 const placeholderRoutes: RouteRecordRaw[] = MENU.flatMap((group) =>
   group.items.map((item) => {
-    const component = basicViews[item.path] ?? Placeholder;
+    const component = docViews[item.path] ?? basicViews[item.path] ?? Placeholder;
     return {
       path: item.path.slice(1),
       name: item.path,

@@ -57,6 +57,24 @@ export interface WindowApi {
   deleteCategory(id: string): Promise<Record<string, unknown>>;
   nextCode(target: string): Promise<string>;
 
+  // ---------------- 单据（出入库） ----------------
+  doc: {
+    /** 单据列表（可按关键字 / 状态 / 类型 / 日期区间过滤） */
+    list(kind: DocKind, filter?: DocFilter): Promise<DocListRow[]>;
+    /** 单据详情：表头 + 明细 + 往来单；不存在时为 null */
+    get(kind: DocKind, id: string): Promise<DocGetResult | null>;
+    /** 保存单据（新建 / 修改草稿），返回表头行（含 doc_no、status） */
+    save(kind: DocKind, input: DocSaveInput): Promise<Record<string, unknown>>;
+    /** 审核单据，返回审核后的表头行 */
+    audit(kind: DocKind, id: string): Promise<Record<string, unknown>>;
+    /** 取消审核，返回回到草稿的表头行 */
+    unaudit(kind: DocKind, id: string): Promise<Record<string, unknown>>;
+    /** 红冲，返回原单（已置 9）与反向单 id */
+    reverse(kind: DocKind, id: string): Promise<{ doc: Record<string, unknown>; reversalDocId: string }>;
+    /** 订单转出入库单，返回新建的草稿出入库单 */
+    transfer(orderKind: 'purchase_order' | 'sales_order', orderId: string): Promise<Record<string, unknown>>;
+  };
+
   // ---------------- Excel ----------------
   excel: {
     templates(): Promise<{ id: string; name: string; importable: boolean }[]>;
@@ -91,6 +109,59 @@ export interface ImportResult {
   success: number;
   failed: number;
   errors: { row: number; message: string; data?: Record<string, unknown> }[];
+}
+
+// ---------------- 单据（出入库） ----------------
+
+/** 单据类型。 */
+export type DocKind = 'purchase_order' | 'purchase_inbound' | 'sales_order' | 'sales_outbound';
+
+/** 单据列表过滤条件（日期为闭区间）。 */
+export interface DocFilter {
+  keyword?: string;
+  status?: number;
+  docType?: string;
+  startDate?: number;
+  endDate?: number;
+  limit?: number;
+}
+
+/** 单据列表行：单据 + 派生展示字段。 */
+export type DocListRow = Record<string, unknown> & {
+  doc_type: string | null;
+  partner_name: string | null;
+  warehouse_name: string | null;
+};
+
+/** 保存单据入参。 */
+export interface DocSaveInput {
+  id?: string;
+  docType?: string;
+  supplier_id?: string | null;
+  customer_id?: string | null;
+  warehouse_id?: string | null;
+  department_id?: string | null;
+  receiver_id?: string | null;
+  use_purpose?: string | null;
+  biz_date?: number;
+  handler_id?: string | null;
+  remark?: string | null;
+  items: Array<{
+    product_id: string;
+    unit_id?: string | null;
+    factor?: number;
+    qty: number;
+    price: number;
+    location_id?: string | null;
+    remark?: string | null;
+  }>;
+}
+
+/** 单据详情。 */
+export interface DocGetResult {
+  doc: Record<string, unknown>;
+  items: Record<string, unknown>[];
+  bills: { ap_bill: Record<string, unknown> | null; ar_bill: Record<string, unknown> | null };
 }
 
 declare global {

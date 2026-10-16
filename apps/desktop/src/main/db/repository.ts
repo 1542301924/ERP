@@ -65,26 +65,13 @@ export const SYNC_ENTITIES = new Set<string>([
   'ar_receipt_apply',
 ]);
 
-/** append-only（只允许 insert，禁止 update / softDelete）的实体：单据、单据明细、库存流水。 */
-export const APPEND_ONLY_ENTITIES = new Set<string>([
-  'stock_ledger',
-  'purchase_order',
-  'purchase_order_item',
-  'purchase_inbound',
-  'purchase_inbound_item',
-  'sales_order',
-  'sales_order_item',
-  'sales_outbound',
-  'sales_outbound_item',
-  'stock_transfer',
-  'stock_transfer_item',
-  'stock_check',
-  'stock_check_item',
-  'ap_payment',
-  'ap_payment_apply',
-  'ar_receipt',
-  'ar_receipt_apply',
-]);
+/**
+ * append-only（只允许 insert，禁止 update / softDelete）的实体：**仅**库存流水。
+ *
+ * 只有库存流水是绝对 append-only；单据/单据明细的可变性由 `services/documents.ts`
+ * 按单据状态机约束（草稿可改，已审核不可改内容，只能通过取消审核/红冲回退）。
+ */
+export const APPEND_ONLY_ENTITIES = new Set<string>(['stock_ledger']);
 
 /** 写入上下文：当前用户、设备 ID、HLC 时钟。 */
 export interface WriteContext {

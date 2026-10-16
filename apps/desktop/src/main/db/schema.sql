@@ -366,6 +366,7 @@ CREATE TABLE IF NOT EXISTS purchase_order (
   handler_id TEXT,
   total_amount REAL DEFAULT 0,
   remark TEXT,
+  reversal_of TEXT,            -- 红冲单指向被红冲的原单据 id
   audited_by TEXT,
   audited_at INTEGER,
   -- [+ 同步字段 §4.2]
@@ -421,6 +422,7 @@ CREATE TABLE IF NOT EXISTS purchase_inbound (
   handler_id TEXT,
   total_amount REAL DEFAULT 0,
   remark TEXT,
+  reversal_of TEXT,            -- 红冲单指向被红冲的原单据 id
   audited_by TEXT,
   audited_at INTEGER,
   -- [+ 同步字段 §4.2]
@@ -476,6 +478,7 @@ CREATE TABLE IF NOT EXISTS sales_order (
   handler_id TEXT,
   total_amount REAL DEFAULT 0,
   remark TEXT,
+  reversal_of TEXT,            -- 红冲单指向被红冲的原单据 id
   audited_by TEXT,
   audited_at INTEGER,
   -- [+ 同步字段 §4.2]
@@ -528,6 +531,7 @@ CREATE TABLE IF NOT EXISTS sales_outbound (
   handler_id TEXT,
   total_amount REAL DEFAULT 0,
   remark TEXT,
+  reversal_of TEXT,            -- 红冲单指向被红冲的原单据 id
   audited_by TEXT,
   audited_at INTEGER,
   -- [+ 同步字段 §4.2]

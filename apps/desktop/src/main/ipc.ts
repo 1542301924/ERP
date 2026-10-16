@@ -24,6 +24,19 @@ import {
   search,
 } from './services/master-data';
 import { nextCode } from './services/code-rule';
+import {
+  audit as auditDoc,
+  get as getDoc,
+  list as listDocs,
+  reverse as reverseDoc,
+  save as saveDoc,
+  transfer as transferDoc,
+  unaudit as unauditDoc,
+  type DocContext,
+  type DocFilter,
+  type DocKind,
+  type DocSaveInput,
+} from './services/documents';
 import { buildExportBuffer, buildTemplateBuffer, importFromBuffer, listTemplates } from './services/excel';
 
 export interface MutateRequest {
@@ -48,7 +61,9 @@ export function registerIpcHandlers(db: SqlDatabase): void {
   const deviceId = ensureDeviceId(db);
   const clock = createHlc(deviceId);
   // P0 未做登录，写入统一记为内置 admin 用户
-  const repo = new Repository(db, { userId: 'user_admin', deviceId, clock });
+  const userId = 'user_admin';
+  const repo = new Repository(db, { userId, deviceId, clock });
+  const docCtx: DocContext = { userId, deviceId, now: () => Date.now() };
 
   ipcMain.handle('config:get', (_event, key?: string) => {
     return key ? getSysConfig(db, key) : getAllSysConfig(db);
@@ -101,6 +116,24 @@ export function registerIpcHandlers(db: SqlDatabase): void {
   ipcMain.handle('md:deleteCategory', (_event, id: string) => deleteCategory(db, repo, id));
 
   ipcMain.handle('code:next', (_event, target: string) => nextCode(db, repo, target));
+
+  // ---------------- 单据（出入库） ----------------
+
+  ipcMain.handle('doc:list', (_event, kind: DocKind, filter?: DocFilter) => listDocs(db, kind, filter));
+
+  ipcMain.handle('doc:get', (_event, kind: DocKind, id: string) => getDoc(db, kind, id));
+
+  ipcMain.handle('doc:save', (_event, kind: DocKind, input: DocSaveInput) => saveDoc(db, repo, docCtx, kind, input));
+
+  ipcMain.handle('doc:audit', (_event, kind: DocKind, id: string) => auditDoc(db, repo, docCtx, kind, id));
+
+  ipcMain.handle('doc:unaudit', (_event, kind: DocKind, id: string) => unauditDoc(db, repo, docCtx, kind, id));
+
+  ipcMain.handle('doc:reverse', (_event, kind: DocKind, id: string) => reverseDoc(db, repo, docCtx, kind, id));
+
+  ipcMain.handle('doc:transfer', (_event, orderKind: 'purchase_order' | 'sales_order', orderId: string) =>
+    transferDoc(db, repo, docCtx, orderKind, orderId),
+  );
 
   // ---------------- Excel ----------------
 
