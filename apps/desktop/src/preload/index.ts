@@ -134,6 +134,14 @@ const api = {
     recomputeBalances: () => ipcRenderer.invoke('finance:recomputeBalances'),
   },
 
+  // ---------------- 报表（P5） ----------------
+  report: {
+    /** 运行报表（返回列定义 + 数据行 + 合计行） */
+    run: (kind: string, filter?: unknown) => ipcRenderer.invoke('report:run', kind, filter),
+    /** 运行并导出为 Excel（弹出保存对话框） */
+    export: (kind: string, filter?: unknown) => ipcRenderer.invoke('report:export', kind, filter),
+  },
+
   // ---------------- Excel ----------------
   excel: {
     /** 列出模板 */

@@ -129,6 +129,17 @@ export interface WindowApi {
     recomputeBalances(): Promise<{ rows: number }>;
   };
 
+  // ---------------- 报表（P5） ----------------
+  report: {
+    /** 运行报表（返回列定义 + 数据行 + 合计行） */
+    run(kind: ReportKind, filter?: ReportFilter): Promise<ReportResult>;
+    /** 运行并导出为 Excel（弹出保存对话框） */
+    export(
+      kind: ReportKind,
+      filter?: ReportFilter,
+    ): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>;
+  };
+
   // ---------------- Excel ----------------
   excel: {
     templates(): Promise<{ id: string; name: string; importable: boolean }[]>;
@@ -453,6 +464,50 @@ export interface AccountFlowRow {
   partner_name: string | null;
   amount: number;
   status: number;
+}
+
+// ---------------- 报表（P5） ----------------
+
+/** 报表类型。 */
+export type ReportKind =
+  | 'inventory_detail'
+  | 'inventory_summary'
+  | 'receipt_statement'
+  | 'shipment_statement'
+  | 'shipment_cost'
+  | 'gross_profit';
+
+/** 列数据类型（决定前端与 Excel 的格式化方式）。 */
+export type ReportColumnType = 'text' | 'money' | 'qty' | 'percent' | 'date';
+
+/** 统一报表过滤条件（各报表按需取用相关维度）。 */
+export interface ReportFilter {
+  keyword?: string;
+  startDate?: number;
+  endDate?: number;
+  warehouseId?: string;
+  productId?: string;
+  customerId?: string;
+  supplierId?: string;
+  handlerId?: string;
+  /** 汇总维度（进销存汇总表 / 销售毛利表使用）。 */
+  groupBy?: 'product' | 'warehouse' | 'customer' | 'handler';
+}
+
+/** 报表列定义。 */
+export interface ReportColumn {
+  key: string;
+  label: string;
+  type: ReportColumnType;
+}
+
+/** 报表结果：列定义 + 数据行 + 可选合计行。 */
+export interface ReportResult {
+  kind: ReportKind;
+  title: string;
+  columns: ReportColumn[];
+  rows: Record<string, unknown>[];
+  totals?: Record<string, number>;
 }
 
 declare global {

@@ -28,6 +28,12 @@ import CheckView from '../views/stock/CheckView.vue';
 import ReceivableView from '../views/finance/ReceivableView.vue';
 import PayableView from '../views/finance/PayableView.vue';
 import AccountsView from '../views/finance/AccountsView.vue';
+import InventoryDetailView from '../views/reports/InventoryDetailView.vue';
+import InventorySummaryView from '../views/reports/InventorySummaryView.vue';
+import ReceiptStatementView from '../views/reports/ReceiptStatementView.vue';
+import ShipmentStatementView from '../views/reports/ShipmentStatementView.vue';
+import ShipmentCostView from '../views/reports/ShipmentCostView.vue';
+import GrossProfitView from '../views/reports/GrossProfitView.vue';
 
 /** P1 主数据页面（基础资料 10 个菜单）。其余分组仍走 Placeholder。 */
 const basicViews: Record<string, Component> = {
@@ -68,6 +74,16 @@ const financeViews: Record<string, Component> = {
   '/finance/receivable': ReceivableView,
   '/finance/payable': PayableView,
   '/finance/accounts': AccountsView,
+};
+
+/** P5 报表页面（6 张报表）。 */
+const reportViews: Record<string, Component> = {
+  '/reports/detail': InventoryDetailView,
+  '/reports/summary': InventorySummaryView,
+  '/reports/receipt-statement': ReceiptStatementView,
+  '/reports/shipment-statement': ShipmentStatementView,
+  '/reports/shipment-cost': ShipmentCostView,
+  '/reports/gross-profit': GrossProfitView,
 };
 
 /** 左侧菜单结构（严格按设计文档 §6.1 页面结构）。 */
@@ -157,7 +173,12 @@ export const MENU: MenuGroup[] = [
 const placeholderRoutes: RouteRecordRaw[] = MENU.flatMap((group) =>
   group.items.map((item) => {
     const component =
-      docViews[item.path] ?? stockViews[item.path] ?? financeViews[item.path] ?? basicViews[item.path] ?? Placeholder;
+      docViews[item.path] ??
+      stockViews[item.path] ??
+      financeViews[item.path] ??
+      reportViews[item.path] ??
+      basicViews[item.path] ??
+      Placeholder;
     return {
       path: item.path.slice(1),
       name: item.path,

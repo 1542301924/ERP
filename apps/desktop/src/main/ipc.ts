@@ -71,6 +71,13 @@ import {
   unaudit as unauditSettleDoc,
   type SettleDocSaveInput,
 } from './services/finance-docs';
+import {
+  buildReportBuffer,
+  reportTitle,
+  runReport,
+  type ReportFilter,
+  type ReportKind,
+} from './services/reports';
 
 export interface MutateRequest {
   op: 'insert' | 'update' | 'delete';
@@ -235,6 +242,27 @@ export function registerIpcHandlers(db: SqlDatabase): void {
   ipcMain.handle('finance:flow', (_event, filter?: AccountFlowFilter) => accountFlow(db, filter));
 
   ipcMain.handle('finance:recomputeBalances', () => ({ rows: recomputeAccountBalance(db) }));
+
+  // ---------------- 报表（P5） ----------------
+
+  ipcMain.handle('report:run', (_event, kind: ReportKind, filter?: ReportFilter) =>
+    runReport(db, kind, filter ?? {}),
+  );
+
+  ipcMain.handle('report:export', async (_event, kind: ReportKind, filter?: ReportFilter) => {
+    try {
+      const result = runReport(db, kind, filter ?? {});
+      const options: SaveDialogOptions = { defaultPath: `${reportTitle(kind)}.xlsx`, filters: XLSX_FILTERS };
+      const win = focusedWindow();
+      const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+      if (res.canceled || !res.filePath) return { ok: true, canceled: true };
+      const buffer = await buildReportBuffer(result);
+      await writeFile(res.filePath, buffer);
+      return { ok: true, path: res.filePath };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
 
   // ---------------- Excel ----------------
 
