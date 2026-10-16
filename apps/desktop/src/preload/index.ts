@@ -1,0 +1,81 @@
+/**
+ * preload：向渲染进程暴露受限的 `window.api`（contextBridge）。
+ */
+
+import { contextBridge, ipcRenderer } from 'electron';
+
+const api = {
+  /** 查询业务表（默认排除软删除行） */
+  query: (entity: string, opts?: { includeDeleted?: boolean; limit?: number }) =>
+    ipcRenderer.invoke('db:query', entity, opts),
+  /** 统一写入口：insert / update / delete */
+  mutate: (req: { op: 'insert' | 'update' | 'delete'; entity: string; values?: unknown; id?: string; patch?: unknown }) =>
+    ipcRenderer.invoke('db:mutate', req),
+  /** 读取系统配置（不传 key 返回全部） */
+  getConfig: (key?: string) => ipcRenderer.invoke('config:get', key),
+
+  // ---------------- 主数据 ----------------
+  /** 条件查询（关键字 / 等值 / 分页） */
+  search: (
+    entity: string,
+    query?: {
+      keyword?: string;
+      fields?: string[];
+      equals?: Record<string, string | number | null>;
+      limit?: number;
+      includeDeleted?: boolean;
+    },
+  ) => ipcRenderer.invoke('md:search', entity, query),
+  /** 按 id 取一行 */
+  getById: (entity: string, id: string) => ipcRenderer.invoke('md:getById', entity, id),
+  /** 商品详情：商品 + 单位 + 条码 */
+  productDetail: (id: string) => ipcRenderer.invoke('md:productDetail', id),
+  /** 条码查询 */
+  lookupBarcode: (barcode: string) => ipcRenderer.invoke('md:lookupBarcode', barcode),
+  /** 保存商品单位（按 product_id + unit_id upsert） */
+  saveProductUnit: (input: {
+    id?: string;
+    product_id: string;
+    unit_id: string;
+    factor: number;
+    is_base?: number;
+    barcode?: string | null;
+    purchase_price?: number | null;
+    sale_price?: number | null;
+  }) => ipcRenderer.invoke('md:saveProductUnit', input),
+  /** 删除商品单位 */
+  deleteProductUnit: (id: string) => ipcRenderer.invoke('md:deleteProductUnit', id),
+  /** 分类树 */
+  categoryTree: (opts?: { includeDisabled?: boolean }) => ipcRenderer.invoke('md:categoryTree', opts),
+  /** 保存分类（维护物料化路径） */
+  saveCategory: (input: {
+    id?: string;
+    parent_id?: string | null;
+    code?: string | null;
+    name: string;
+    sort?: number;
+    status?: number;
+  }) => ipcRenderer.invoke('md:saveCategory', input),
+  /** 删除分类 */
+  deleteCategory: (id: string) => ipcRenderer.invoke('md:deleteCategory', id),
+  /** 生成下一个编号 */
+  nextCode: (target: string) => ipcRenderer.invoke('code:next', target),
+
+  // ---------------- Excel ----------------
+  excel: {
+    /** 列出模板 */
+    templates: () => ipcRenderer.invoke('excel:templates'),
+    /** 下载模板到选定路径 */
+    downloadTemplate: (id: string) => ipcRenderer.invoke('excel:downloadTemplate', id),
+    /** 选择 Excel 文件 */
+    pickFile: () => ipcRenderer.invoke('excel:pickFile'),
+    /** 导入 */
+    import: (id: string, filePath: string) => ipcRenderer.invoke('excel:import', id, filePath),
+    /** 导出实体 */
+    exportEntity: (entity: string) => ipcRenderer.invoke('excel:exportEntity', entity),
+  },
+};
+
+contextBridge.exposeInMainWorld('api', api);
+
+export type PreloadApi = typeof api;

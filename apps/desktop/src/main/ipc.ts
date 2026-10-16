@@ -1,0 +1,159 @@
+/**
+ * 主进程 IPC handler 注册。
+ *
+ * 既有通道：`db:query`、`db:mutate`、`config:get`。
+ * P1 新增：主数据查询 / 保存、编号规则、Excel 模板导入导出。
+ * 文件选择与落盘只在本文件处理（electron dialog + node:fs/promises）。
+ */
+
+import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { readFile, writeFile } from 'node:fs/promises';
+import { createHlc, type Row } from '@inventory/shared';
+import { ensureDeviceId, getAllSysConfig, getSysConfig } from './db/database';
+import { Repository } from './db/repository';
+import type { SqlDatabase } from './db/sqlite';
+import {
+  categoryTree,
+  deleteCategory,
+  deleteProductUnit,
+  getById,
+  lookupBarcode,
+  productDetail,
+  saveCategory,
+  saveProductUnit,
+  search,
+} from './services/master-data';
+import { nextCode } from './services/code-rule';
+import { buildExportBuffer, buildTemplateBuffer, importFromBuffer, listTemplates } from './services/excel';
+
+export interface MutateRequest {
+  op: 'insert' | 'update' | 'delete';
+  entity: string;
+  values?: Row;
+  id?: string;
+  patch?: Row;
+}
+
+const XLSX_FILTERS = [{ name: 'Excel 工作簿', extensions: ['xlsx'] }];
+
+function focusedWindow(): BrowserWindow | undefined {
+  return BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+export function registerIpcHandlers(db: SqlDatabase): void {
+  const deviceId = ensureDeviceId(db);
+  const clock = createHlc(deviceId);
+  // P0 未做登录，写入统一记为内置 admin 用户
+  const repo = new Repository(db, { userId: 'user_admin', deviceId, clock });
+
+  ipcMain.handle('config:get', (_event, key?: string) => {
+    return key ? getSysConfig(db, key) : getAllSysConfig(db);
+  });
+
+  ipcMain.handle(
+    'db:query',
+    (_event, entity: string, opts?: { includeDeleted?: boolean; limit?: number }) => repo.list(entity, opts),
+  );
+
+  ipcMain.handle('db:mutate', (_event, req: MutateRequest) => {
+    switch (req.op) {
+      case 'insert':
+        return repo.insert(req.entity, req.values ?? {});
+      case 'update':
+        if (!req.id) throw new Error('update 需要 id');
+        return repo.update(req.entity, req.id, req.patch ?? {});
+      case 'delete':
+        if (!req.id) throw new Error('delete 需要 id');
+        return repo.softDelete(req.entity, req.id);
+      default:
+        throw new Error(`未知 op: ${String(req.op)}`);
+    }
+  });
+
+  // ---------------- 主数据 ----------------
+
+  ipcMain.handle('md:search', (_event, entity: string, query?: Parameters<typeof search>[2]) =>
+    search(db, entity, query),
+  );
+
+  ipcMain.handle('md:getById', (_event, entity: string, id: string) => getById(db, entity, id));
+
+  ipcMain.handle('md:productDetail', (_event, id: string) => productDetail(db, id));
+
+  ipcMain.handle('md:lookupBarcode', (_event, barcode: string) => lookupBarcode(db, barcode));
+
+  ipcMain.handle('md:saveProductUnit', (_event, input: Parameters<typeof saveProductUnit>[2]) =>
+    saveProductUnit(db, repo, input),
+  );
+
+  ipcMain.handle('md:deleteProductUnit', (_event, id: string) => deleteProductUnit(repo, id));
+
+  ipcMain.handle('md:categoryTree', (_event, opts?: { includeDisabled?: boolean }) => categoryTree(db, opts));
+
+  ipcMain.handle('md:saveCategory', (_event, input: Parameters<typeof saveCategory>[2]) =>
+    saveCategory(db, repo, input),
+  );
+
+  ipcMain.handle('md:deleteCategory', (_event, id: string) => deleteCategory(db, repo, id));
+
+  ipcMain.handle('code:next', (_event, target: string) => nextCode(db, repo, target));
+
+  // ---------------- Excel ----------------
+
+  ipcMain.handle('excel:templates', () => listTemplates());
+
+  ipcMain.handle('excel:downloadTemplate', async (_event, id: string) => {
+    try {
+      const tpl = listTemplates().find((t) => t.id === id);
+      const defaultPath = `${tpl ? tpl.name : id}.xlsx`;
+      const options: SaveDialogOptions = { defaultPath, filters: XLSX_FILTERS };
+      const win = focusedWindow();
+      const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+      if (res.canceled || !res.filePath) return { ok: true, canceled: true };
+      const buffer = await buildTemplateBuffer(id);
+      await writeFile(res.filePath, buffer);
+      return { ok: true, path: res.filePath };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  ipcMain.handle('excel:pickFile', async () => {
+    try {
+      const options: OpenDialogOptions = { properties: ['openFile'], filters: XLSX_FILTERS };
+      const win = focusedWindow();
+      const res = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+      if (res.canceled || res.filePaths.length === 0) return { ok: true, canceled: true };
+      return { ok: true, path: res.filePaths[0] };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  ipcMain.handle('excel:import', async (_event, id: string, filePath: string) => {
+    try {
+      const buffer = await readFile(filePath);
+      return await importFromBuffer(db, repo, id, buffer);
+    } catch (err) {
+      return { template: id, total: 0, success: 0, failed: 0, errors: [{ row: 0, message: errorMessage(err) }] };
+    }
+  });
+
+  ipcMain.handle('excel:exportEntity', async (_event, entity: string) => {
+    try {
+      const options: SaveDialogOptions = { defaultPath: `${entity}.xlsx`, filters: XLSX_FILTERS };
+      const win = focusedWindow();
+      const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+      if (res.canceled || !res.filePath) return { ok: true, canceled: true };
+      const buffer = await buildExportBuffer(db, entity);
+      await writeFile(res.filePath, buffer);
+      return { ok: true, path: res.filePath };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+}
