@@ -6,14 +6,13 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { newId, SysConfigKey } from '@inventory/shared';
 import { createDatabase, type SqlDatabase } from './sqlite';
 
 export const SCHEMA_VERSION = 4;
 
-const SCHEMA_SQL = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
+const SCHEMA_SQL = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
 
 /** 需要新增 `reversal_of` 列的单据表（硬编码字面量，不接受外部输入）。 */
 const REVERSAL_OF_TABLES = [

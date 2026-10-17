@@ -1,8 +1,8 @@
 /**
  * 构建期资源拷贝：把运行时按路径读取的非 TS 文件放到 dist 对应位置。
  *
- * 主进程由 esbuild 打包成单文件 dist/main/index.js，但 `database.ts` 会在
- * 运行时按 `import.meta.url` 旁边的路径读取 `schema.sql`；若不同步拷贝，
+ * 主进程由 esbuild 打包成单文件 dist/main/index.cjs，但 `database.ts` 会在
+ * 运行时按 `__dirname` 旁边的路径读取 `schema.sql`；若不同步拷贝，
  * 打包进 asar 后会因 `dist/main/schema.sql` 缺失而在启动时报 ENOENT。
  *
  * 用法：node scripts/copy-assets.mjs

@@ -9,7 +9,7 @@
 
 import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
+const require = createRequire(__filename);
 
 export interface SqlRunResult {
   changes: number;

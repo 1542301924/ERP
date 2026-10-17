@@ -6,10 +6,10 @@
   "description": "轻松进销存 — 轻量级进销存出入库管理系统（离线优先桌面端）",
   "author": "轻松进销存",
   "type": "module",
-  "main": "dist/main/index.js",
+  "main": "dist/main/index.cjs",
   "scripts": {
     "build": "vite build",
-    "build:main": "esbuild src/main/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/main/index.js --external:electron --external:better-sqlite3 --external:exceljs && esbuild src/preload/index.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/preload/index.cjs --external:electron && node scripts/copy-assets.mjs",
+    "build:main": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/main/index.cjs --external:electron --external:better-sqlite3 --external:exceljs && esbuild src/preload/index.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/preload/index.cjs --external:electron && node scripts/copy-assets.mjs",
     "icon": "node scripts/make-icon.mjs",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "node --import tsx --test test/*.test.ts",
