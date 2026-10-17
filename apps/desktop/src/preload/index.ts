@@ -179,6 +179,26 @@ const api = {
     /** 导出实体 */
     exportEntity: (entity: string) => ipcRenderer.invoke('excel:exportEntity', entity),
   },
+
+  // ---------------- 备份 / 恢复（P8） ----------------
+  backup: {
+    /** 备份记录列表（按时间倒序） */
+    list: () => ipcRenderer.invoke('backup:list'),
+    /** 备份到默认备份目录（受保留份数管理） */
+    create: () => ipcRenderer.invoke('backup:create'),
+    /** 备份并另存到指定路径（弹出保存对话框） */
+    export: () => ipcRenderer.invoke('backup:export'),
+    /** 选择备份文件（用于恢复） */
+    pickFile: () => ipcRenderer.invoke('backup:pickFile'),
+    /** 删除备份记录（默认目录内的文件一并删除） */
+    remove: (id: string) => ipcRenderer.invoke('backup:delete', id),
+    /** 从备份文件恢复主库（成功后应用自动重启） */
+    restore: (filePath: string) => ipcRenderer.invoke('backup:restore', filePath),
+    /** 读取保留份数 */
+    getKeep: () => ipcRenderer.invoke('backup:keep:get'),
+    /** 设置保留份数 */
+    setKeep: (keep: number) => ipcRenderer.invoke('backup:keep:set', keep),
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);

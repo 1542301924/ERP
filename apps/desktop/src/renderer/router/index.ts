@@ -35,6 +35,7 @@ import ShipmentStatementView from '../views/reports/ShipmentStatementView.vue';
 import ShipmentCostView from '../views/reports/ShipmentCostView.vue';
 import GrossProfitView from '../views/reports/GrossProfitView.vue';
 import SyncCenterView from '../views/system/SyncCenterView.vue';
+import BackupView from '../views/system/BackupView.vue';
 
 /** P1 主数据页面（基础资料 10 个菜单）。其余分组仍走 Placeholder。 */
 const basicViews: Record<string, Component> = {
@@ -87,9 +88,10 @@ const reportViews: Record<string, Component> = {
   '/reports/gross-profit': GrossProfitView,
 };
 
-/** P7 系统页面（同步中心）。 */
+/** P7 系统页面（同步中心 / 数据备份恢复）。 */
 const systemViews: Record<string, Component> = {
   '/system/sync': SyncCenterView,
+  '/system/backup': BackupView,
 };
 
 /** 左侧菜单结构（严格按设计文档 §6.1 页面结构）。 */

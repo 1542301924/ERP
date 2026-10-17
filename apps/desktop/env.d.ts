@@ -172,6 +172,28 @@ export interface WindowApi {
     import(id: string, filePath: string): Promise<ImportResult>;
     exportEntity(entity: string): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>;
   };
+
+  // ---------------- 备份 / 恢复（P8） ----------------
+  backup: {
+    /** 备份记录列表（按时间倒序） */
+    list(): Promise<BackupRecord[]>;
+    /** 备份到默认备份目录（受保留份数管理） */
+    create(): Promise<{ ok: boolean; record?: BackupRecord; error?: string }>;
+    /** 备份并另存到指定路径（弹出保存对话框） */
+    export(): Promise<{ ok: boolean; canceled?: boolean; record?: BackupRecord; error?: string }>;
+    /** 选择备份文件（用于恢复） */
+    pickFile(): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>;
+    /** 删除备份记录（默认目录内的文件一并删除） */
+    remove(id: string): Promise<{ ok: boolean; error?: string }>;
+    /** 从备份文件恢复主库（成功后应用自动重启） */
+    restore(
+      filePath: string,
+    ): Promise<{ ok: boolean; safetyPath?: string; restarting?: boolean; error?: string }>;
+    /** 读取保留份数 */
+    getKeep(): Promise<number>;
+    /** 设置保留份数 */
+    setKeep(keep: number): Promise<number>;
+  };
 }
 
 /** 分类树节点。 */
@@ -606,6 +628,21 @@ export interface SyncConflictRow {
   resolved_by: string | null;
   resolved_at: number | null;
   status: number;
+}
+
+// ---------------- 备份 / 恢复（P8） ----------------
+
+/** 备份类型：manual 手动 / auto 自动 / safety 恢复前自动快照。 */
+export type BackupKind = 'manual' | 'auto' | 'safety';
+
+/** 备份记录行（backup_record）。 */
+export interface BackupRecord {
+  id: string;
+  file_path: string;
+  size: number;
+  kind: BackupKind;
+  at: number;
+  remark: string | null;
 }
 
 declare global {

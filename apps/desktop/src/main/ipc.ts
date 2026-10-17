@@ -6,8 +6,9 @@
  * 文件选择与落盘只在本文件处理（electron dialog + node:fs/promises）。
  */
 
-import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createHlc, type Row } from '@inventory/shared';
 import { ensureDeviceId, getAllSysConfig, getSysConfig } from './db/database';
 import { Repository } from './db/repository';
@@ -92,6 +93,15 @@ import {
   resolveConflict as resolveSyncConflict,
   type SyncContext,
 } from './services/sync-core';
+import {
+  backupKeep,
+  createBackup,
+  deleteBackup,
+  listBackups,
+  restoreFromBackup,
+  setBackupKeep,
+  type BackupContext,
+} from './services/backup';
 
 export interface MutateRequest {
   op: 'insert' | 'update' | 'delete';
@@ -102,6 +112,7 @@ export interface MutateRequest {
 }
 
 const XLSX_FILTERS = [{ name: 'Excel 工作簿', extensions: ['xlsx'] }];
+const DB_FILTERS = [{ name: 'SQLite 备份文件', extensions: ['db'] }];
 
 function focusedWindow(): BrowserWindow | undefined {
   return BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
@@ -111,7 +122,7 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-export function registerIpcHandlers(db: SqlDatabase): void {
+export function registerIpcHandlers(db: SqlDatabase, dbFile: string): void {
   const deviceId = ensureDeviceId(db);
   const clock = createHlc(deviceId);
   // P0 未做登录，写入统一记为内置 admin 用户
@@ -120,6 +131,12 @@ export function registerIpcHandlers(db: SqlDatabase): void {
   const docCtx: DocContext = { userId, deviceId, now: () => Date.now() };
   const syncCtx: SyncContext = { deviceId, clock, now: () => Date.now() };
   const syncEngine = createSyncEngine(db, syncCtx);
+  const backupCtx: BackupContext = {
+    db,
+    dbFile,
+    backupsDir: join(app.getPath('userData'), 'backups'),
+    now: () => Date.now(),
+  };
   let lanServer: LanServerHandle | null = null;
 
   ipcMain.handle('config:get', (_event, key?: string) => {
@@ -381,6 +398,78 @@ export function registerIpcHandlers(db: SqlDatabase): void {
       const buffer = await buildExportBuffer(db, entity);
       await writeFile(res.filePath, buffer);
       return { ok: true, path: res.filePath };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  // ---------------- 备份 / 恢复（P8） ----------------
+
+  ipcMain.handle('backup:list', () => listBackups(db));
+
+  ipcMain.handle('backup:create', () => {
+    try {
+      return { ok: true, record: createBackup(backupCtx) };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  ipcMain.handle('backup:export', async () => {
+    try {
+      const d = new Date();
+      const pad = (n: number): string => String(n).padStart(2, '0');
+      const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+      const options: SaveDialogOptions = { defaultPath: `轻松进销存备份-${stamp}.db`, filters: DB_FILTERS };
+      const win = focusedWindow();
+      const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+      if (res.canceled || !res.filePath) return { ok: true, canceled: true };
+      return { ok: true, record: createBackup(backupCtx, { destPath: res.filePath, remark: '另存副本' }) };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  ipcMain.handle('backup:pickFile', async () => {
+    try {
+      const options: OpenDialogOptions = { properties: ['openFile'], filters: DB_FILTERS };
+      const win = focusedWindow();
+      const res = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+      if (res.canceled || res.filePaths.length === 0) return { ok: true, canceled: true };
+      return { ok: true, path: res.filePaths[0] };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  ipcMain.handle('backup:delete', (_event, id: string) => {
+    try {
+      deleteBackup(backupCtx, id);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  ipcMain.handle('backup:keep:get', () => backupKeep(db));
+
+  ipcMain.handle('backup:keep:set', (_event, keep: number) => setBackupKeep(db, keep));
+
+  ipcMain.handle('backup:restore', async (_event, filePath: string) => {
+    try {
+      // 恢复会替换整个主库：先停掉后台同步与 LAN 服务，避免对即将关闭的连接继续写入
+      syncEngine.stop();
+      if (lanServer) {
+        await lanServer.close();
+        lanServer = null;
+      }
+      const { safetyPath } = restoreFromBackup(backupCtx, filePath);
+      // 稍后重启：留出时间把 IPC 结果回给渲染进程
+      setTimeout(() => {
+        app.relaunch();
+        app.exit(0);
+      }, 400);
+      return { ok: true, safetyPath, restarting: true };
     } catch (err) {
       return { ok: false, error: errorMessage(err) };
     }

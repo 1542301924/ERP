@@ -41,7 +41,7 @@ app.whenReady().then(() => {
   const dbFile = join(app.getPath('userData'), 'inventory.db');
   const db = openAndInit(dbFile);
   seedDefaultData(db);
-  registerIpcHandlers(db);
+  registerIpcHandlers(db, dbFile);
 
   createWindow();
 
