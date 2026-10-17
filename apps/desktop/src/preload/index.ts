@@ -142,6 +142,30 @@ const api = {
     export: (kind: string, filter?: unknown) => ipcRenderer.invoke('report:export', kind, filter),
   },
 
+  // ---------------- 同步（P7） ----------------
+  sync: {
+    /** 同步中心状态：待同步 / 冲突 / 上次同步 + 配置 + 主节点服务状态 */
+    state: () => ipcRenderer.invoke('sync:state'),
+    /** 读取同步配置 */
+    getConfig: () => ipcRenderer.invoke('sync:config:get'),
+    /** 更新同步配置（角色 / 主节点地址 / 端口 / 间隔） */
+    setConfig: (patch: unknown) => ipcRenderer.invoke('sync:config:set', patch),
+    /** 立即同步一次（推 outbox + 拉增量） */
+    now: () => ipcRenderer.invoke('sync:now'),
+    /** 冲突列表（可按状态过滤） */
+    conflicts: (opts?: { status?: number }) => ipcRenderer.invoke('sync:conflicts', opts),
+    /** 人工裁决冲突（把裁决值写回实体） */
+    resolve: (input: { id: string; resolvedValue: string | null }) => ipcRenderer.invoke('sync:resolve', input),
+    /** 启动主节点 LAN 服务 */
+    startServer: () => ipcRenderer.invoke('sync:server:start'),
+    /** 停止主节点 LAN 服务 */
+    stopServer: () => ipcRenderer.invoke('sync:server:stop'),
+    /** 启动后台定时同步引擎（client 角色） */
+    startEngine: () => ipcRenderer.invoke('sync:engine:start'),
+    /** 停止后台定时同步引擎 */
+    stopEngine: () => ipcRenderer.invoke('sync:engine:stop'),
+  },
+
   // ---------------- Excel ----------------
   excel: {
     /** 列出模板 */

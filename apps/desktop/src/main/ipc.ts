@@ -78,6 +78,20 @@ import {
   type ReportFilter,
   type ReportKind,
 } from './services/reports';
+import { startLanServer, type LanServerHandle } from './services/lan';
+import {
+  createSyncEngine,
+  getSyncConfig,
+  setSyncConfig,
+  syncCenterState,
+  syncNow,
+  type SyncConfig,
+} from './services/sync';
+import {
+  listConflicts,
+  resolveConflict as resolveSyncConflict,
+  type SyncContext,
+} from './services/sync-core';
 
 export interface MutateRequest {
   op: 'insert' | 'update' | 'delete';
@@ -104,6 +118,9 @@ export function registerIpcHandlers(db: SqlDatabase): void {
   const userId = 'user_admin';
   const repo = new Repository(db, { userId, deviceId, clock });
   const docCtx: DocContext = { userId, deviceId, now: () => Date.now() };
+  const syncCtx: SyncContext = { deviceId, clock, now: () => Date.now() };
+  const syncEngine = createSyncEngine(db, syncCtx);
+  let lanServer: LanServerHandle | null = null;
 
   ipcMain.handle('config:get', (_event, key?: string) => {
     return key ? getSysConfig(db, key) : getAllSysConfig(db);
@@ -262,6 +279,56 @@ export function registerIpcHandlers(db: SqlDatabase): void {
     } catch (err) {
       return { ok: false, error: errorMessage(err) };
     }
+  });
+
+  // ---------------- 同步（P7） ----------------
+
+  ipcMain.handle('sync:state', () => {
+    const state = syncCenterState(db, syncCtx);
+    return {
+      ...state,
+      engineRunning: syncEngine.isRunning(),
+      server: lanServer
+        ? { running: true, port: lanServer.port, url: lanServer.url }
+        : { running: false, port: 0, url: '' },
+    };
+  });
+
+  ipcMain.handle('sync:config:get', () => getSyncConfig(db));
+
+  ipcMain.handle('sync:config:set', (_event, patch: Partial<SyncConfig>) => setSyncConfig(db, patch));
+
+  ipcMain.handle('sync:now', () => syncNow(db, syncCtx));
+
+  ipcMain.handle('sync:conflicts', (_event, opts?: { status?: number }) => listConflicts(db, opts ?? {}));
+
+  ipcMain.handle('sync:resolve', (_event, input: { id: string; resolvedValue: string | null }) =>
+    resolveSyncConflict(db, repo, { ...input, userId }),
+  );
+
+  ipcMain.handle('sync:server:start', async () => {
+    if (!lanServer) {
+      lanServer = await startLanServer({ db, ctx: syncCtx, port: getSyncConfig(db).port });
+    }
+    return { running: true, port: lanServer.port, url: lanServer.url };
+  });
+
+  ipcMain.handle('sync:server:stop', async () => {
+    if (lanServer) {
+      await lanServer.close();
+      lanServer = null;
+    }
+    return { running: false, port: 0, url: '' };
+  });
+
+  ipcMain.handle('sync:engine:start', () => {
+    syncEngine.start();
+    return { running: syncEngine.isRunning() };
+  });
+
+  ipcMain.handle('sync:engine:stop', () => {
+    syncEngine.stop();
+    return { running: false };
   });
 
   // ---------------- Excel ----------------

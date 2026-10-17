@@ -34,6 +34,7 @@ import ReceiptStatementView from '../views/reports/ReceiptStatementView.vue';
 import ShipmentStatementView from '../views/reports/ShipmentStatementView.vue';
 import ShipmentCostView from '../views/reports/ShipmentCostView.vue';
 import GrossProfitView from '../views/reports/GrossProfitView.vue';
+import SyncCenterView from '../views/system/SyncCenterView.vue';
 
 /** P1 主数据页面（基础资料 10 个菜单）。其余分组仍走 Placeholder。 */
 const basicViews: Record<string, Component> = {
@@ -84,6 +85,11 @@ const reportViews: Record<string, Component> = {
   '/reports/shipment-statement': ShipmentStatementView,
   '/reports/shipment-cost': ShipmentCostView,
   '/reports/gross-profit': GrossProfitView,
+};
+
+/** P7 系统页面（同步中心）。 */
+const systemViews: Record<string, Component> = {
+  '/system/sync': SyncCenterView,
 };
 
 /** 左侧菜单结构（严格按设计文档 §6.1 页面结构）。 */
@@ -177,6 +183,7 @@ const placeholderRoutes: RouteRecordRaw[] = MENU.flatMap((group) =>
       stockViews[item.path] ??
       financeViews[item.path] ??
       reportViews[item.path] ??
+      systemViews[item.path] ??
       basicViews[item.path] ??
       Placeholder;
     return {

@@ -140,6 +140,30 @@ export interface WindowApi {
     ): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>;
   };
 
+  // ---------------- 同步（P7） ----------------
+  sync: {
+    /** 同步中心状态：待同步 / 冲突 / 上次同步 + 配置 + 主节点服务状态 */
+    state(): Promise<SyncState>;
+    /** 读取同步配置 */
+    getConfig(): Promise<SyncConfigShape>;
+    /** 更新同步配置（角色 / 主节点地址 / 端口 / 间隔） */
+    setConfig(patch: Partial<SyncConfigShape>): Promise<SyncConfigShape>;
+    /** 立即同步一次（推 outbox + 拉增量） */
+    now(): Promise<SyncResultShape>;
+    /** 冲突列表（可按状态过滤） */
+    conflicts(opts?: { status?: number }): Promise<SyncConflictRow[]>;
+    /** 人工裁决冲突（把裁决值写回实体） */
+    resolve(input: { id: string; resolvedValue: string | null }): Promise<SyncConflictRow>;
+    /** 启动主节点 LAN 服务 */
+    startServer(): Promise<SyncServerInfo>;
+    /** 停止主节点 LAN 服务 */
+    stopServer(): Promise<SyncServerInfo>;
+    /** 启动后台定时同步引擎（client 角色） */
+    startEngine(): Promise<{ running: boolean }>;
+    /** 停止后台定时同步引擎 */
+    stopEngine(): Promise<{ running: boolean }>;
+  };
+
   // ---------------- Excel ----------------
   excel: {
     templates(): Promise<{ id: string; name: string; importable: boolean }[]>;
@@ -508,6 +532,80 @@ export interface ReportResult {
   columns: ReportColumn[];
   rows: Record<string, unknown>[];
   totals?: Record<string, number>;
+}
+
+// ---------------- 同步（P7） ----------------
+
+/** 节点角色：standalone 单机不同步 / master 主节点 / client 客户端。 */
+export type SyncRole = 'standalone' | 'master' | 'client';
+
+/** 同步配置。 */
+export interface SyncConfigShape {
+  role: SyncRole;
+  masterUrl: string;
+  port: number;
+  intervalMs: number;
+}
+
+/** 同步游标。 */
+export interface SyncCursorShape {
+  peerId: string;
+  lastPullSeq: number;
+  lastPushSeq: number;
+  lastSyncAt: number | null;
+  status: string | null;
+}
+
+/** 同步状态摘要。 */
+export interface SyncStatusShape {
+  deviceId: string;
+  pendingCount: number;
+  conflictCount: number;
+  lastSyncAt: number | null;
+  cursor: SyncCursorShape;
+}
+
+/** 主节点 LAN 服务信息。 */
+export interface SyncServerInfo {
+  running: boolean;
+  port: number;
+  url: string;
+}
+
+/** 同步中心整体状态。 */
+export interface SyncState {
+  status: SyncStatusShape;
+  config: SyncConfigShape;
+  engineRunning: boolean;
+  server: SyncServerInfo;
+}
+
+/** 一次同步的结果。 */
+export interface SyncResultShape {
+  ok: boolean;
+  pushed: number;
+  pulled: number;
+  conflicts: number;
+  duplicate: number;
+  nextSeq: number;
+  error?: string;
+}
+
+/** 冲突记录行。 */
+export interface SyncConflictRow {
+  id: string;
+  entity: string;
+  entity_id: string;
+  field: string;
+  value_a: string | null;
+  value_b: string | null;
+  hlc_a: string;
+  hlc_b: string;
+  winner: string;
+  resolved_value: string | null;
+  resolved_by: string | null;
+  resolved_at: number | null;
+  status: number;
 }
 
 declare global {
