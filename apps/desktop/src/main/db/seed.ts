@@ -24,6 +24,11 @@ const DEFAULT_BASIC_DATA: Array<{ entity: string; id: string; name: string }> = 
   { entity: 'supplier', id: 'sup_default', name: '普通供应商' },
 ];
 
+/** 默认编号规则：纯数字、定长 8 位（如 00000001），装好即可「自动生成」编号。 */
+const DEFAULT_CODE_RULES: Array<{ target: string; seqLen: number }> = [
+  { target: 'product', seqLen: 8 },
+];
+
 /** 默认管理员账号（首次登录用；密码为占位默认值，P1 接入登录后强制修改）。 */
 const DEFAULT_ADMIN_ACCOUNT = 'admin';
 const DEFAULT_ADMIN_PASSWORD = 'admin123';
@@ -56,6 +61,21 @@ export function seedDefaultData(db: SqlDatabase, options: { deviceId?: string } 
     if (repo.findById(item.entity, item.id)) continue;
     if (repo.list(item.entity).some((row) => String(row.name) === item.name)) continue;
     repo.insert(item.entity, { name: item.name, status: 1 }, item.id);
+  }
+
+  // 默认编号规则：按 target 去重，已配置（含用户自定义）则不覆盖
+  for (const item of DEFAULT_CODE_RULES) {
+    const existing = db
+      .prepare('SELECT id FROM code_rule WHERE target = ? AND deleted = 0')
+      .get(item.target);
+    if (existing) continue;
+    repo.insert('code_rule', {
+      target: item.target,
+      prefix: null,
+      category_code: null,
+      seq_len: item.seqLen,
+      next_seq: 1,
+    });
   }
 
   // 默认管理员角色
