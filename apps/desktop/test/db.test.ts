@@ -142,6 +142,7 @@ test('种子数据：sys_config 默认值 / 默认单位 / 管理员角色与用
   assert.equal(getSysConfig(db, 'allow_negative_stock'), '0');
   assert.equal(getSysConfig(db, 'backup_keep'), '7');
   assert.equal(getSysConfig(db, 'lan_port'), '8765');
+  assert.equal(getSysConfig(db, 'auto_launch'), '0');
 
   const units = db.prepare('SELECT name FROM unit WHERE deleted = 0').all().map((r) => r.name as string);
   assert.deepEqual(units.sort(), ['kg', '个', '件', '箱'].sort());

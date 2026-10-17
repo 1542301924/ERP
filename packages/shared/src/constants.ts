@@ -65,10 +65,12 @@ export const SysConfigKey = {
   BACKUP_KEEP: 'backup_keep',
   LAN_PORT: 'lan_port',
   THEME: 'theme',
+  AUTO_LAUNCH: 'auto_launch',
 } as const;
 
 export const SysConfigDefault: Record<string, string> = {
   [SysConfigKey.ALLOW_NEGATIVE_STOCK]: '0', // 0=禁止负库存（默认），1=允许
   [SysConfigKey.BACKUP_KEEP]: '7',
   [SysConfigKey.LAN_PORT]: '8765',
+  [SysConfigKey.AUTO_LAUNCH]: '0',
 };

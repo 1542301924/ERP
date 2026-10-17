@@ -14,6 +14,15 @@ const api = {
   /** 读取系统配置（不传 key 返回全部） */
   getConfig: (key?: string) => ipcRenderer.invoke('config:get', key),
 
+  // ---------------- 设置 ----------------
+  /** 应用与数据位置信息（版本 / 设备 ID / 数据库版本 / 数据目录） */
+  info: () => ipcRenderer.invoke('app:info'),
+  /** 读取「设置」页开关（允许负库存 / 开机自启） */
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  /** 更新「设置」页开关（开机自启会同步系统登录项） */
+  setSettings: (patch: { allowNegativeStock?: boolean; autoLaunch?: boolean }) =>
+    ipcRenderer.invoke('settings:set', patch),
+
   // ---------------- 主数据 ----------------
   /** 条件查询（关键字 / 等值 / 分页） */
   search: (

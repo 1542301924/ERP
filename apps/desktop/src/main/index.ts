@@ -6,9 +6,11 @@
 import { app, BrowserWindow, Menu } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { openAndInit } from './db/database';
+import { SysConfigKey } from '@inventory/shared';
+import { getSysConfig, openAndInit } from './db/database';
 import { seedDefaultData } from './db/seed';
 import { registerIpcHandlers } from './ipc';
+import { applyAutoLaunch } from './services/auto-launch';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +43,8 @@ app.whenReady().then(() => {
   const dbFile = join(app.getPath('userData'), 'inventory.db');
   const db = openAndInit(dbFile);
   seedDefaultData(db);
+  // 恢复用户的「开机自启」偏好（系统登录项可能被清理或系统重装）
+  applyAutoLaunch(getSysConfig(db, SysConfigKey.AUTO_LAUNCH) === '1');
   registerIpcHandlers(db, dbFile);
 
   createWindow();

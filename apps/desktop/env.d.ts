@@ -20,6 +20,14 @@ export interface WindowApi {
   }): Promise<Record<string, unknown>>;
   getConfig(key?: string): Promise<Record<string, string> | string | null>;
 
+  // ---------------- 设置 ----------------
+  /** 应用与数据位置信息（版本 / 设备 ID / 数据库版本 / 数据目录） */
+  info(): Promise<AppInfo>;
+  /** 读取「设置」页开关（允许负库存 / 开机自启） */
+  getSettings(): Promise<AppSettings>;
+  /** 更新「设置」页开关（开机自启会同步系统登录项） */
+  setSettings(patch: Partial<AppSettings>): Promise<AppSettings>;
+
   // ---------------- 主数据 ----------------
   search(
     entity: string,
@@ -194,6 +202,25 @@ export interface WindowApi {
     /** 设置保留份数 */
     setKeep(keep: number): Promise<number>;
   };
+}
+
+/** 应用与数据位置信息（「设置 → 关于」）。 */
+export interface AppInfo {
+  name: string;
+  version: string;
+  deviceId: string;
+  schemaVersion: number;
+  dbFile: string;
+  userDataDir: string;
+  backupsDir: string;
+}
+
+/** 「设置」页开关。 */
+export interface AppSettings {
+  /** 允许负库存：关闭（默认）时出库/调拨审核校验可用量。 */
+  allowNegativeStock: boolean;
+  /** 开机自启。 */
+  autoLaunch: boolean;
 }
 
 /** 分类树节点。 */

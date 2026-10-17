@@ -9,7 +9,7 @@
 import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createHlc, type Row } from '@inventory/shared';
+import { createHlc, SysConfigKey, type Row } from '@inventory/shared';
 import { ensureDeviceId, getAllSysConfig, getSysConfig } from './db/database';
 import { Repository } from './db/repository';
 import type { SqlDatabase } from './db/sqlite';
@@ -102,6 +102,8 @@ import {
   setBackupKeep,
   type BackupContext,
 } from './services/backup';
+import { readAppSettings, saveAppSettings, type AppSettings } from './services/settings';
+import { applyAutoLaunch } from './services/auto-launch';
 
 export interface MutateRequest {
   op: 'insert' | 'update' | 'delete';
@@ -141,6 +143,27 @@ export function registerIpcHandlers(db: SqlDatabase, dbFile: string): void {
 
   ipcMain.handle('config:get', (_event, key?: string) => {
     return key ? getSysConfig(db, key) : getAllSysConfig(db);
+  });
+
+  // ---------------- 设置 ----------------
+
+  ipcMain.handle('app:info', () => ({
+    name: app.getName(),
+    version: app.getVersion(),
+    deviceId,
+    schemaVersion: Number(getSysConfig(db, SysConfigKey.SCHEMA_VERSION) ?? 0),
+    dbFile,
+    userDataDir: app.getPath('userData'),
+    backupsDir: join(app.getPath('userData'), 'backups'),
+  }));
+
+  ipcMain.handle('settings:get', () => readAppSettings(db));
+
+  ipcMain.handle('settings:set', (_event, patch: Partial<AppSettings>) => {
+    const next = saveAppSettings(db, patch ?? {});
+    // 开机自启除了写库，还需同步系统登录项
+    if (patch?.autoLaunch !== undefined) applyAutoLaunch(next.autoLaunch);
+    return next;
   });
 
   ipcMain.handle(
