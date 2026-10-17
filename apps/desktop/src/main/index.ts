@@ -3,7 +3,7 @@
  * 说明：无 GUI 环境下不要求真正弹窗，能通过类型校验 / 构建即可。
  */
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { openAndInit } from './db/database';
@@ -34,6 +34,9 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  // 去掉系统默认菜单栏（File/Edit/View/Window/Help）
+  Menu.setApplicationMenu(null);
+
   // 本地主库：位于用户数据目录
   const dbFile = join(app.getPath('userData'), 'inventory.db');
   const db = openAndInit(dbFile);
