@@ -59,10 +59,10 @@ const basicViews: Record<string, Component> = {
 const docViews: Record<string, Component> = {
   '/purchase/orders': PurchaseOrdersView,
   '/purchase/inbound': PurchaseInboundView,
-  '/purchase/dept-use': DeptUseView,
   '/purchase/production-in': ProductionInView,
   '/sales/orders': SalesOrdersView,
   '/sales/outbound': SalesOutboundView,
+  '/sales/dept-use': DeptUseView,
   '/sales/returns': ReturnsView,
 };
 
@@ -131,7 +131,6 @@ export const MENU: MenuGroup[] = [
     items: [
       { path: '/purchase/orders', title: '采购订单' },
       { path: '/purchase/inbound', title: '采购入库单' },
-      { path: '/purchase/dept-use', title: '部门领用单' },
       { path: '/purchase/production-in', title: '生产入库单' },
     ],
   },
@@ -140,6 +139,7 @@ export const MENU: MenuGroup[] = [
     items: [
       { path: '/sales/orders', title: '销售订单' },
       { path: '/sales/outbound', title: '销售出库单' },
+      { path: '/sales/dept-use', title: '部门领用单' },
       { path: '/sales/returns', title: '退货入库 / 退货出库' },
     ],
   },

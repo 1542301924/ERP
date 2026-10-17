@@ -24,6 +24,9 @@ const DEFAULT_BASIC_DATA: Array<{ entity: string; id: string; name: string }> = 
   { entity: 'supplier', id: 'sup_default', name: '普通供应商' },
 ];
 
+/** 默认商品类别：装好即有可用类别，商品建档时可直接选用。 */
+const DEFAULT_CATEGORY = { id: 'cat_all', name: '所有类别' };
+
 /** 默认编号规则：纯数字、定长 8 位（如 00000001），装好即可「自动生成」编号。 */
 const DEFAULT_CODE_RULES: Array<{ target: string; seqLen: number }> = [
   { target: 'product', seqLen: 8 },
@@ -56,6 +59,25 @@ export function seedDefaultData(db: SqlDatabase, options: { deviceId?: string } 
     if (repo.findById(item.entity, item.id)) continue;
     if (repo.list(item.entity).some((row) => String(row.name) === item.name)) continue;
     repo.insert(item.entity, { name: item.name, status: 1 }, item.id);
+  }
+
+  // 默认商品类别「所有类别」：同样按 id / 同名去重（path 与新增分类时保持一致）
+  if (
+    !repo.findById('product_category', DEFAULT_CATEGORY.id) &&
+    !repo.list('product_category').some((row) => String(row.name) === DEFAULT_CATEGORY.name)
+  ) {
+    repo.insert(
+      'product_category',
+      {
+        parent_id: null,
+        code: null,
+        name: DEFAULT_CATEGORY.name,
+        sort: 0,
+        status: 1,
+        path: `/root/${DEFAULT_CATEGORY.id}/`,
+      },
+      DEFAULT_CATEGORY.id,
+    );
   }
 
   // 默认编号规则：按 target 去重，已配置（含用户自定义）则不覆盖
