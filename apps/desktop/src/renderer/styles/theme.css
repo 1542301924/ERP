@@ -1,25 +1,109 @@
+/**
+ * 全局设计令牌与 Element Plus 外观覆写。
+ *
+ * 设计基调：安静的浅灰工作台 + 单一靛蓝强调色，用「发丝描边 + 留白」代替厚重卡片与阴影，
+ * 信息密度保持紧凑但可读。深浅色主题共用同一套层级语义，只切换令牌值。
+ */
+
+/* ---------- 1. 设计令牌（浅色） ---------- */
 :root {
-  --bg: #f5f6f8;
+  /* 表面层级：页面底 → 内容面 → 次级面 */
+  --bg: #f2f4f7;
   --panel: #ffffff;
-  --text: #1f2329;
-  --text-muted: #6b7280;
-  --border: #e5e7eb;
-  --brand: #1a73e8;
-  --header-bg: #ffffff;
-  --aside-bg: #ffffff;
+  --surface-2: #f7f9fb;
+  --surface-3: #eef1f5;
+
+  /* 文字层级 */
+  --text: #10151c;
+  --text-2: #5a6472;
+  --text-3: #8b95a3;
+
+  /* 描边：发丝级，避免大色块分割 */
+  --border: #e7ebf0;
+  --border-strong: #d9dfe7;
+
+  /* 单一强调色 */
+  --brand: #4c6ef5;
+  --brand-soft: #eef1fe;
+  --brand-ink: #ffffff;
+
+  /* 圆角与阴影 */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-sm: 0 1px 2px rgba(16, 21, 28, 0.04);
+  --shadow-md: 0 8px 24px -12px rgba(16, 21, 28, 0.18);
+  --shadow-lg: 0 24px 60px -28px rgba(16, 21, 28, 0.3);
+
+  --header-height: 60px;
+  --transition: 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* Element Plus 变量桥接 */
+  --el-color-primary: #4c6ef5;
+  --el-color-primary-light-3: #7c95f8;
+  --el-color-primary-light-5: #a5b6fb;
+  --el-color-primary-light-7: #ced8fd;
+  --el-color-primary-light-8: #e0e6fe;
+  --el-color-primary-light-9: #eef1fe;
+  --el-color-primary-dark-2: #3b5bf0;
+
+  --el-bg-color: var(--panel);
+  --el-bg-color-page: var(--bg);
+  --el-bg-color-overlay: var(--panel);
+  --el-fill-color-blank: var(--panel);
+  --el-fill-color-light: var(--surface-2);
+  --el-fill-color-lighter: var(--surface-2);
+
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: var(--text-2);
+  --el-text-color-secondary: var(--text-3);
+  --el-text-color-placeholder: var(--text-3);
+
+  --el-border-color: var(--border-strong);
+  --el-border-color-light: var(--border);
+  --el-border-color-lighter: var(--border);
+  --el-border-color-extra-light: var(--border);
+
+  --el-border-radius-base: var(--radius);
+  --el-border-radius-small: var(--radius-sm);
+  --el-box-shadow-light: var(--shadow-md);
+  --el-box-shadow: var(--shadow-lg);
+  --el-transition-duration: 180ms;
 }
 
-[data-theme='dark'] {
-  --bg: #14161a;
-  --panel: #1c1f26;
-  --text: #e6e8eb;
-  --text-muted: #9aa4b2;
-  --border: #2a2f39;
-  --brand: #4c8dff;
-  --header-bg: #1c1f26;
-  --aside-bg: #1c1f26;
+/* ---------- 2. 设计令牌（深色） ---------- */
+html[data-theme='dark'] {
+  --bg: #0e1116;
+  --panel: #161a21;
+  --surface-2: #1b2028;
+  --surface-3: #212832;
+
+  --text: #e8ebef;
+  --text-2: #9aa4b2;
+  --text-3: #6d7887;
+
+  --border: #242b35;
+  --border-strong: #2e3641;
+
+  --brand: #7c93ff;
+  --brand-soft: #1e2740;
+  --brand-ink: #0e1116;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 28px 64px -28px rgba(0, 0, 0, 0.8);
+
+  --el-color-primary: #7c93ff;
+  --el-color-primary-light-3: #5f76e0;
+  --el-color-primary-light-5: #4a5eb8;
+  --el-color-primary-light-7: #33406f;
+  --el-color-primary-light-8: #2a3558;
+  --el-color-primary-light-9: #1e2740;
+  --el-color-primary-dark-2: #93a6ff;
 }
 
+/* ---------- 3. 基础排版 ---------- */
 html,
 body,
 #app {
@@ -30,56 +114,141 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family:
+    'Inter', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+/* 数字与单据编号等需要等宽对齐的场景由 .num 类启用 */
+.num,
+.el-table__cell .num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 4. 骨架布局 ---------- */
 .layout {
   height: 100vh;
 }
 
 .aside {
-  background: var(--aside-bg);
+  background: var(--panel);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
 }
 
 .brand {
-  height: 56px;
+  height: var(--header-height);
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  gap: 10px;
+  padding: 0 16px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
   color: var(--text);
   border-bottom: 1px solid var(--border);
-}
-
-.menu {
-  flex: 1;
-  border-right: none;
+  flex-shrink: 0;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--header-bg);
+  height: var(--header-height);
+  padding: 0 20px;
+  background: var(--panel);
   border-bottom: 1px solid var(--border);
   color: var(--text);
 }
 
-.header .title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .main {
   background: var(--bg);
+  padding: 18px 20px 28px;
+  overflow: auto;
 }
 
 .card-gap {
   margin-bottom: 16px;
+}
+
+/* ---------- 5. 卡片：去厚重化，改为发丝描边平面 ---------- */
+.el-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  box-shadow: none;
+  overflow: hidden;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+
+.el-card__header {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.el-card__body {
+  padding: 18px;
+}
+
+/* 仅悬停态卡片保留抬升反馈（工作台 KPI 等可点击卡片） */
+.el-card.is-hover-shadow:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.el-card.is-always-shadow {
+  box-shadow: var(--shadow-md);
+}
+
+/* ---------- 6. 表格：轻网格、可扫读 ---------- */
+.el-table {
+  --el-table-border-color: var(--border);
+  --el-table-border: 1px solid var(--border);
+  --el-table-header-bg-color: var(--surface-2);
+  --el-table-header-text-color: var(--text-2);
+  --el-table-text-color: var(--text);
+  --el-table-row-hover-bg-color: var(--brand-soft);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  font-size: 13px;
+  background: transparent;
+}
+
+.el-table th.el-table__cell {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 8px 0;
+}
+
+.el-table td.el-table__cell {
+  padding: 9px 0;
+}
+
+.el-table .cell {
+  line-height: 1.5;
+}
+
+/* 行悬停时的横向引导条 */
+.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell {
+  background-color: var(--brand-soft);
+}
+
+.el-table__body tr.current-row > td.el-table__cell {
+  background-color: var(--brand-soft);
 }
 
 /* 表格横向滚动条常显：窗口变窄或列较多时，可直接拖动查看右侧列。
@@ -94,10 +263,299 @@ body {
 
 .el-table .el-scrollbar__bar.is-horizontal > div {
   height: 100%;
-  background-color: var(--el-text-color-secondary);
-  opacity: 0.55;
+  background-color: var(--text-3);
+  opacity: 0.5;
 }
 
 .el-table .el-scrollbar__bar.is-horizontal:hover > div {
   opacity: 0.85;
+}
+
+/* ---------- 7. 表单与控件 ---------- */
+.el-form-item__label {
+  font-size: 13px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--border-strong) inset;
+  transition: box-shadow var(--transition);
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--brand) inset;
+}
+
+.el-button {
+  border-radius: var(--radius);
+  font-weight: 500;
+  transition:
+    background-color var(--transition),
+    border-color var(--transition),
+    color var(--transition),
+    transform var(--transition);
+}
+
+.el-button:active:not(.is-disabled) {
+  transform: translateY(1px);
+}
+
+.el-button.is-link {
+  font-weight: 500;
+}
+
+.el-tag {
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  padding: 0 8px;
+}
+
+.el-alert {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+}
+
+.el-alert--warning.is-light {
+  background: color-mix(in srgb, #f59e0b 8%, var(--panel));
+  border-color: color-mix(in srgb, #f59e0b 26%, var(--border));
+}
+
+.el-alert--error.is-light {
+  background: color-mix(in srgb, #ef4444 8%, var(--panel));
+  border-color: color-mix(in srgb, #ef4444 24%, var(--border));
+}
+
+/* ---------- 8. 侧边导航 ---------- */
+.menu {
+  flex: 1;
+  border-right: none;
+  padding: 10px;
+  overflow-y: auto;
+  background: transparent;
+}
+
+.el-menu {
+  border-right: none;
+  background: transparent;
+  --el-menu-item-height: 38px;
+  --el-menu-sub-item-height: 36px;
+}
+
+.el-menu-item {
+  height: 38px;
+  line-height: 38px;
+  margin: 2px 0;
+  padding-left: 12px !important;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: 13.5px;
+  transition:
+    background-color var(--transition),
+    color var(--transition);
+}
+
+.el-menu-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.el-menu-item.is-active {
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* 分组标题：更安静的小标题，而不是可点击菜单项 */
+.el-sub-menu__title {
+  height: 34px;
+  line-height: 34px;
+  padding-left: 12px !important;
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  border-radius: var(--radius);
+}
+
+.el-sub-menu__title:hover {
+  background: transparent;
+  color: var(--text-2);
+}
+
+.el-menu--inline .el-menu-item {
+  padding-left: 12px !important;
+}
+
+.el-menu .el-sub-menu.is-active > .el-sub-menu__title {
+  color: var(--text-2);
+}
+
+/* ---------- 9. 弹层 ---------- */
+.el-dialog {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  padding: 0;
+  box-shadow: var(--shadow-lg);
+}
+
+.el-dialog__header {
+  margin: 0;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.el-dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.el-dialog__body {
+  padding: 20px 22px;
+  color: var(--text);
+}
+
+.el-dialog__footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+}
+
+.el-message-box {
+  border-radius: var(--radius-xl);
+  padding: 20px;
+}
+
+.el-popper.is-light,
+.el-select-dropdown,
+.el-dropdown__popper {
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+  box-shadow: var(--shadow-md);
+}
+
+.el-tabs__item {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.el-tabs__nav-wrap::after {
+  height: 1px;
+  background-color: var(--border);
+}
+
+/* ---------- 10. 滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-3) 42%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-2) 55%, transparent);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- 11. 动效 ---------- */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.page-leave-active {
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.rise {
+  animation: rise-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active,
+  .rise {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---------- 12. 通用零件 ---------- */
+/* 区块小标题：用于无卡片布局中的分组 */
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.section-title .hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-label {
+  font-size: 12.5px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.kpi-extra {
+  font-size: 12px;
+  color: var(--text-3);
+  min-height: 18px;
 }

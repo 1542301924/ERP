@@ -211,18 +211,6 @@ onMounted(load);
   <div v-loading="loading">
     <el-alert v-if="error" class="card-gap" type="error" :title="error" :closable="false" />
 
-    <el-card class="card-gap">
-      <div class="head">
-        <div>
-          <div class="hello">你好，今天 {{ formatDate(Date.now()) }}</div>
-          <div class="sub">
-            数据更新于 {{ updatedAt ? formatTime(updatedAt) : '-' }}
-          </div>
-        </div>
-        <el-button :loading="loading" @click="load">刷新</el-button>
-      </div>
-    </el-card>
-
     <el-alert
       v-if="hasSyncTodo"
       class="card-gap"
@@ -242,54 +230,58 @@ onMounted(load);
       </template>
     </el-alert>
 
-    <el-row :gutter="16" class="card-gap">
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card shadow="hover" class="stat" @click="go('/purchase/inbound')">
-          <div class="stat-label">今日入库</div>
-          <div class="stat-value">{{ inbound.count }}<span class="unit">单</span></div>
-          <div class="stat-extra">金额 ¥{{ money(inbound.amount) }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card shadow="hover" class="stat" @click="go('/sales/outbound')">
-          <div class="stat-label">今日出库</div>
-          <div class="stat-value">{{ outbound.count }}<span class="unit">单</span></div>
-          <div class="stat-extra">金额 ¥{{ money(outbound.amount) }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card shadow="hover" class="stat">
-          <div class="stat-label">待审核单据</div>
-          <div class="stat-value">{{ pendingTotal }}<span class="unit">单</span></div>
-          <div class="stat-extra">{{ pendingText || '暂无待审核' }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card shadow="hover" class="stat" @click="go('/stock/alerts')">
-          <div class="stat-label">库存预警</div>
-          <div class="stat-value">{{ alerts.length }}<span class="unit">项</span></div>
-          <div class="stat-extra">低于下限 {{ lowAlertCount }} 项</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card shadow="hover" class="stat" @click="go('/finance/receivable')">
-          <div class="stat-label">应收未结清</div>
-          <div class="stat-value small">¥{{ money(ar.total) }}</div>
-          <div class="stat-extra">{{ ar.count }} 张单据未结清</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card shadow="hover" class="stat" @click="go('/finance/payable')">
-          <div class="stat-label">应付未结清</div>
-          <div class="stat-value small">¥{{ money(ap.total) }}</div>
-          <div class="stat-extra">{{ ap.count }} 张单据未结清</div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 今日概览：单一平面承载全部指标，用发丝分隔线替代卡片矩阵 -->
+    <el-card class="card-gap overview">
+      <div class="overview-head">
+        <div>
+          <div class="ov-title">你好，今天 {{ formatDate(Date.now()) }}</div>
+          <div class="ov-sub">数据更新于 {{ updatedAt ? formatTime(updatedAt) : '-' }}</div>
+        </div>
+        <el-button :loading="loading" @click="load">刷新</el-button>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-group">
+          <div class="kpi is-link" @click="go('/purchase/inbound')">
+            <div class="kpi-label">今日入库</div>
+            <div class="kpi-value">{{ inbound.count }}<span class="unit">单</span></div>
+            <div class="kpi-extra">金额 ¥{{ money(inbound.amount) }}</div>
+          </div>
+          <div class="kpi is-link" @click="go('/sales/outbound')">
+            <div class="kpi-label">今日出库</div>
+            <div class="kpi-value">{{ outbound.count }}<span class="unit">单</span></div>
+            <div class="kpi-extra">金额 ¥{{ money(outbound.amount) }}</div>
+          </div>
+        </div>
+
+        <div class="kpi-group secondary">
+          <div class="kpi">
+            <div class="kpi-label">待审核单据</div>
+            <div class="kpi-value">{{ pendingTotal }}<span class="unit">单</span></div>
+            <div class="kpi-extra">{{ pendingText || '暂无待审核' }}</div>
+          </div>
+          <div class="kpi is-link" @click="go('/stock/alerts')">
+            <div class="kpi-label">库存预警</div>
+            <div class="kpi-value">{{ alerts.length }}<span class="unit">项</span></div>
+            <div class="kpi-extra">低于下限 {{ lowAlertCount }} 项</div>
+          </div>
+          <div class="kpi is-link" @click="go('/finance/receivable')">
+            <div class="kpi-label">应收未结清</div>
+            <div class="kpi-value">¥{{ money(ar.total) }}</div>
+            <div class="kpi-extra">{{ ar.count }} 张单据未结清</div>
+          </div>
+          <div class="kpi is-link" @click="go('/finance/payable')">
+            <div class="kpi-label">应付未结清</div>
+            <div class="kpi-value">¥{{ money(ap.total) }}</div>
+            <div class="kpi-extra">{{ ap.count }} 张单据未结清</div>
+          </div>
+        </div>
+      </div>
+    </el-card>
 
     <el-card class="card-gap">
       <template #header>
-        <div class="head">
+        <div class="card-head">
           <span>今日单据</span>
           <el-button link type="primary" @click="go('/sales/outbound')">进入销售出库</el-button>
         </div>
@@ -302,7 +294,9 @@ onMounted(load);
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="doc_no" label="单据编号" width="170" />
+        <el-table-column prop="doc_no" label="单据编号" width="170">
+          <template #default="{ row }"><span class="num">{{ row.doc_no }}</span></template>
+        </el-table-column>
         <el-table-column label="往来单位" min-width="150">
           <template #default="{ row }">{{ row.partner_name ?? '-' }}</template>
         </el-table-column>
@@ -310,7 +304,7 @@ onMounted(load);
           <template #default="{ row }">{{ row.warehouse_name ?? '-' }}</template>
         </el-table-column>
         <el-table-column label="金额" width="130" align="right">
-          <template #default="{ row }">¥{{ money(row.total_amount) }}</template>
+          <template #default="{ row }"><span class="num">¥{{ money(row.total_amount) }}</span></template>
         </el-table-column>
         <el-table-column label="状态" width="110" align="center">
           <template #default="{ row }">
@@ -329,7 +323,7 @@ onMounted(load);
       <el-col :xs="24" :md="14">
         <el-card>
           <template #header>
-            <div class="head">
+            <div class="card-head">
               <span>库存预警（低于下限）</span>
               <el-button link type="primary" @click="go('/stock/alerts')">查看全部</el-button>
             </div>
@@ -341,7 +335,7 @@ onMounted(load);
               <template #default="{ row }">{{ row.unit_name ?? '-' }}</template>
             </el-table-column>
             <el-table-column label="当前库存" width="100" align="right">
-              <template #default="{ row }">{{ qty(row.total_qty) }}</template>
+              <template #default="{ row }"><span class="num">{{ qty(row.total_qty) }}</span></template>
             </el-table-column>
             <el-table-column label="下限" width="80" align="right">
               <template #default="{ row }">{{ row.min_stock ?? '-' }}</template>
@@ -374,48 +368,91 @@ onMounted(load);
 </template>
 
 <style scoped>
-.head {
+.card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.hello {
-  font-size: 16px;
-  font-weight: 600;
+
+/* 概览卡：头部信息 + 指标带 */
+.overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
-.sub {
-  margin-top: 4px;
-  color: var(--el-text-color-secondary);
+
+.ov-title {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.ov-sub {
+  margin-top: 3px;
   font-size: 12px;
+  color: var(--text-3);
 }
-.stat {
+
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.kpi-group {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.kpi {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: 2px 20px;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+}
+
+/* 首列不画分隔线，作为整条指标带的起点 */
+.kpi-row > .kpi-group:first-child > .kpi:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+
+.kpi.is-link {
   cursor: pointer;
-  margin-bottom: 16px;
+  transition: background-color var(--transition);
 }
-.stat-label {
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
+
+.kpi.is-link:hover {
+  background: var(--surface-2);
 }
-.stat-value {
-  margin: 6px 0 2px;
-  font-size: 26px;
-  font-weight: 600;
-  line-height: 1.2;
+
+.kpi.is-link:hover .kpi-value {
+  color: var(--brand);
 }
-.stat-value.small {
+
+.kpi .kpi-value {
+  margin: 4px 0 2px;
+  transition: color var(--transition);
+}
+
+.kpi-group.secondary .kpi-value {
   font-size: 20px;
 }
+
 .unit {
-  margin-left: 2px;
-  font-size: 13px;
+  margin-left: 3px;
+  font-size: 12.5px;
   font-weight: 400;
-  color: var(--el-text-color-secondary);
+  color: var(--text-3);
 }
-.stat-extra {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  min-height: 18px;
-}
+
 .sync-bar {
   display: flex;
   align-items: center;
@@ -423,19 +460,40 @@ onMounted(load);
   margin-top: 4px;
   font-size: 13px;
 }
+
 .shortcuts {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
+
 .shortcuts :deep(.el-button + .el-button) {
   margin-left: 0;
 }
+
 .sync-note {
-  margin-top: 14px;
+  margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  color: var(--el-text-color-secondary);
+  border-top: 1px solid var(--border);
+  color: var(--text-3);
   font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1200px) {
+  .kpi-group {
+    flex: 1 1 100%;
+  }
+
+  .kpi-group + .kpi-group .kpi:first-child {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  .kpi-group + .kpi-group {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
 }
 </style>

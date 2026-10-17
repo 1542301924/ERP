@@ -371,12 +371,10 @@ class NsisTarget extends core_1.Target {
         }
         else {
             try {
-                // 交叉构建（Linux）：直接用纯 JS 的 UninstallerReader 从中间安装器中抽出卸载程序，
-                // 避免依赖 wine 运行 32 位安装器。
                 await nsisUtil_1.UninstallerReader.exec(installerPath, uninstallerPath);
             }
             catch (error) {
-                builder_util_1.log.warn(`UninstallerReader failed (${error.message}), falling back to wine`);
+                builder_util_1.log.warn(`UninstallerReader failed, fallback to wine: ${error.message}`);
                 const wineVm = new WineVm_1.WineVmManager((_a = packager.config.toolsets) === null || _a === void 0 ? void 0 : _a.wine);
                 await wineVm.exec(installerPath, [], { env: { __COMPAT_LAYER: "RunAsInvoker" } });
             }
