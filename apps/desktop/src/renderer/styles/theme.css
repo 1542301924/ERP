@@ -373,29 +373,41 @@ body {
   font-weight: 600;
 }
 
-/* 分组标题：更安静的小标题，而不是可点击菜单项 */
+/* 大类（分组标题）：比子项更大更重、颜色更实，并在组间加发丝分隔线，
+   展开后一眼即可区分「大类」与「子项」 */
 .el-sub-menu__title {
-  height: 34px;
-  line-height: 34px;
-  padding-left: 12px !important;
-  color: var(--text-3);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  height: 40px;
+  line-height: 40px;
+  padding-left: 10px !important;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   border-radius: var(--radius);
 }
 
 .el-sub-menu__title:hover {
   background: transparent;
-  color: var(--text-2);
+  color: var(--text);
 }
 
+/* 每个大类之间用一条发丝线隔开，保证全部展开时区块清晰 */
+.el-menu > .el-sub-menu:not(:first-child) {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/* 子项：缩进更深、字号略小、颜色更淡，与大类形成明显层级差 */
 .el-menu--inline .el-menu-item {
-  padding-left: 12px !important;
+  margin-left: 8px;
+  padding-left: 16px !important;
+  font-size: 13px;
+  color: var(--text-2);
 }
 
 .el-menu .el-sub-menu.is-active > .el-sub-menu__title {
-  color: var(--text-2);
+  color: var(--text);
 }
 
 /* ---------- 9. 弹层 ---------- */
