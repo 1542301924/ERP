@@ -13,6 +13,7 @@
 import {
   applyChange,
   newId,
+  serializeHlc,
   type ConflictInfo,
   type HlcClock,
   type IncomingChange,
@@ -58,6 +59,28 @@ export interface ApplySummary {
   noop: number;
   skipped: number;
   conflicts: number;
+  /** 因收到「裁决广播」而清除的本地未处理冲突条数。 */
+  resolutions: number;
+}
+
+/**
+ * 裁决广播的专用变更实体名。
+ *
+ * 裁决一条冲突时，除了把裁决值写回业务表（产生正常的 update 变更），
+ * 还会额外广播一条本实体的变更；其他各端应用它时，按
+ * `(entity, entity_id, field)` 清除本地**同字段的未处理冲突**，
+ * 从而避免「值收敛了、冲突标记却赖在各端」的情况。
+ */
+export const CONFLICT_RESOLUTION_ENTITY = '_conflict_resolution';
+
+/** 裁决广播的 payload 结构。 */
+export interface ResolutionPayload {
+  entity: string;
+  entity_id: string;
+  field: string;
+  resolved_value: string | null;
+  resolved_by: string | null;
+  resolved_at: number | null;
 }
 
 /** `_conflict` 行。 */
@@ -241,6 +264,50 @@ function recordConflict(db: SqlDatabase, c: ConflictInfo): boolean {
 }
 
 /**
+ * 写入一条「裁决广播」变更（`pushed=0`，随本端 outbox 同步出去）。
+ * 与业务表变更同事务，seq 紧跟在裁决产生的 update 之后，保证接收端先应用值、再清冲突。
+ */
+function recordResolutionBroadcast(
+  db: SqlDatabase,
+  ctx: SyncContext,
+  info: ResolutionPayload,
+): void {
+  const now = nowFn(ctx);
+  const seq = maxLocalSeq(db) + 1;
+  db.prepare(
+    'INSERT INTO _change_log (log_id, seq, device_id, entity, entity_id, op, payload, hlc, created_at, pushed) ' +
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
+  ).run(
+    newId(),
+    seq,
+    ctx.deviceId,
+    CONFLICT_RESOLUTION_ENTITY,
+    `${info.entity}:${info.entity_id}:${info.field}`,
+    'resolve',
+    JSON.stringify(info),
+    serializeHlc(ctx.clock.tick()),
+    now(),
+  );
+}
+
+/**
+ * 应用一条裁决广播：把本地同 `(entity, entity_id, field)` 的**未处理**冲突标记为已裁决。
+ * 返回被清除的冲突条数（0 表示本地无对应冲突，属正常情况）。
+ */
+function applyResolutionBroadcast(db: SqlDatabase, change: SyncChange): number {
+  const p = change.payload as unknown as ResolutionPayload | null;
+  if (!p || typeof p.entity !== 'string' || typeof p.field !== 'string') return 0;
+  const at = p.resolved_at ?? change.createdAt;
+  const result = db
+    .prepare(
+      'UPDATE _conflict SET status = 1, winner = ?, resolved_value = ?, resolved_by = ?, resolved_at = ? ' +
+        'WHERE entity = ? AND entity_id = ? AND field = ? AND status = 0',
+    )
+    .run('manual', p.resolved_value ?? null, p.resolved_by ?? null, at, p.entity, p.entity_id, p.field);
+  return Number(result.changes ?? 0);
+}
+
+/**
  * 应用一批来自远端的变更（落库 + 冲突记录 + 推进本地时钟）。
  * 本端自身产生的变更（`device_id` 相同）会被跳过以避免回声。
  */
@@ -252,12 +319,24 @@ export function applyIncoming(
 ): ApplySummary {
   const skipOwn = opts.skipOwnDevice ?? true;
   const cache = new Map<string, Set<string>>();
-  const summary: ApplySummary = { applied: 0, inserted: 0, updated: 0, noop: 0, skipped: 0, conflicts: 0 };
+  const summary: ApplySummary = { applied: 0, inserted: 0, updated: 0, noop: 0, skipped: 0, conflicts: 0, resolutions: 0 };
 
   db.transaction(() => {
     for (const change of changes) {
       if (skipOwn && change.deviceId === ctx.deviceId) {
         summary.skipped += 1;
+        continue;
+      }
+      // 裁决广播：清除本地同字段的未处理冲突，不写业务表
+      if (change.entity === CONFLICT_RESOLUTION_ENTITY) {
+        const cleared = applyResolutionBroadcast(db, change);
+        if (cleared > 0) {
+          summary.resolutions += cleared;
+          summary.applied += cleared;
+        } else {
+          summary.noop += 1;
+        }
+        if (change.hlc) ctx.clock.receive(change.hlc);
         continue;
       }
       const known = SYNC_ENTITIES.has(change.entity);
@@ -307,7 +386,7 @@ export function receivePush(
   ctx: SyncContext,
   deviceId: string,
   changes: SyncChange[],
-): { applied: number; conflicts: number; duplicate: number; ackSeq: number; incomingSeq: number } {
+): { applied: number; conflicts: number; duplicate: number; ackSeq: number; incomingSeq: number; resolutions: number } {
   const now = nowFn(ctx);
   const peerId = `device:${deviceId}`;
   const cursor = readCursor(db, peerId);
@@ -327,6 +406,7 @@ export function receivePush(
     duplicate: changes.length - fresh.length,
     ackSeq,
     incomingSeq,
+    resolutions: summary.resolutions,
   };
 }
 
@@ -338,7 +418,7 @@ export function integratePull(
   ctx: SyncContext,
   changes: SyncChange[],
   peerId = 'lan:master',
-): { applied: number; conflicts: number; duplicate: number; nextSeq: number } {
+): { applied: number; conflicts: number; duplicate: number; nextSeq: number; resolutions: number } {
   const now = nowFn(ctx);
   const cursor = readCursor(db, peerId);
   const fresh = filterAfterSeq(changes, cursor.lastPullSeq);
@@ -350,6 +430,7 @@ export function integratePull(
     conflicts: summary.conflicts,
     duplicate: changes.length - fresh.length,
     nextSeq,
+    resolutions: summary.resolutions,
   };
 }
 
@@ -428,12 +509,13 @@ function coerceValue(db: SqlDatabase, entity: string, field: string, raw: string
 
 /**
  * 人工裁决一条冲突：把裁决值写回实体（走统一写入口，会作为本端变更继续同步出去），
- * 并把冲突置为已处理。返回更新后的冲突行。
+ * 并把冲突置为已处理。若提供 `ctx`，还会额外写一条**裁决广播**，让其他各端
+ * 按 `(entity, entity_id, field)` 清除同字段的未处理冲突。返回更新后的冲突行。
  */
 export function resolveConflict(
   db: SqlDatabase,
   repo: Repository,
-  input: { id: string; resolvedValue: string | null; userId: string; now?: () => number },
+  input: { id: string; resolvedValue: string | null; userId: string; now?: () => number; ctx?: SyncContext },
 ): ConflictRow {
   const row = db.prepare('SELECT * FROM _conflict WHERE id = ?').get(input.id);
   if (!row) throw new Error(`冲突不存在: ${input.id}`);
@@ -442,7 +524,7 @@ export function resolveConflict(
   const entity = String(row.entity ?? '');
   const entityId = String(row.entity_id ?? '');
   const field = String(row.field ?? '');
-  const at = (input.now ?? Date.now)();
+  const at = (input.now ?? input.ctx?.now ?? Date.now)();
   const value = coerceValue(db, entity, field, input.resolvedValue);
 
   db.transaction(() => {
@@ -450,6 +532,16 @@ export function resolveConflict(
     db.prepare(
       'UPDATE _conflict SET resolved_value = ?, resolved_by = ?, resolved_at = ?, winner = ?, status = 1 WHERE id = ?',
     ).run(input.resolvedValue, input.userId, at, 'manual', input.id);
+    if (input.ctx) {
+      recordResolutionBroadcast(db, input.ctx, {
+        entity,
+        entity_id: entityId,
+        field,
+        resolved_value: input.resolvedValue,
+        resolved_by: input.userId,
+        resolved_at: at,
+      });
+    }
   });
 
   return listConflicts(db).find((c) => c.id === input.id) as ConflictRow;

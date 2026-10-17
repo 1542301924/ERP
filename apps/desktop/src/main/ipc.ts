@@ -303,7 +303,7 @@ export function registerIpcHandlers(db: SqlDatabase): void {
   ipcMain.handle('sync:conflicts', (_event, opts?: { status?: number }) => listConflicts(db, opts ?? {}));
 
   ipcMain.handle('sync:resolve', (_event, input: { id: string; resolvedValue: string | null }) =>
-    resolveSyncConflict(db, repo, { ...input, userId }),
+    resolveSyncConflict(db, repo, { ...input, userId, ctx: syncCtx }),
   );
 
   ipcMain.handle('sync:server:start', async () => {

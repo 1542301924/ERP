@@ -11,6 +11,7 @@ import {
   listConflicts,
   markPushed,
   pullSince,
+  readCursor,
   receivePush,
   resolveConflict,
   syncStatus,
@@ -147,6 +148,42 @@ test('同字段真冲突：落 _conflict、置 sync_state=2，可人工裁决', 
   assert.equal(resolved.resolved_value, 'A 名');
   assert.equal(m.repo.findById('product', 'prod1')!.name, 'A 名');
   assert.equal(listConflicts(m.db, { status: 0 }).length, 0, '裁决后不再有未处理冲突');
+  m.db.close();
+  a.db.close();
+  b.db.close();
+});
+
+test('裁决广播：其他端拉取后自动清除同字段未处理冲突', () => {
+  const m = makePeer('devM', 1_000);
+  const a = makePeer('devA', 2_000);
+  const b = makePeer('devB', 3_000);
+  m.repo.insert('product', { code: 'P1', name: '基线', status: 1 }, 'prod1');
+  const base = pullSince(m.db, 0);
+  integratePull(a.db, a.ctx, base, 'lan:master');
+  integratePull(b.db, b.ctx, base, 'lan:master');
+
+  a.repo.update('product', 'prod1', { name: 'A 名' });
+  b.repo.update('product', 'prod1', { name: 'B 名' });
+  receivePush(m.db, m.ctx, 'devA', collectOutbox(a.db));
+  assert.equal(receivePush(m.db, m.ctx, 'devB', collectOutbox(b.db)).conflicts, 1);
+
+  const conflict = listConflicts(m.db, { status: 0 })[0];
+  // 主节点带 ctx 裁决 → 额外写一条裁决广播
+  resolveConflict(m.db, m.repo, {
+    id: conflict.id,
+    resolvedValue: 'A 名',
+    userId: 'u_admin',
+    ctx: m.ctx,
+  });
+
+  // B 拉取裁决结果：先应用值变更（会再次判定冲突），再应用广播（清除冲突）
+  const delta = pullSince(m.db, readCursor(b.db, 'lan:master').lastPullSeq);
+  const integrated = integratePull(b.db, b.ctx, delta, 'lan:master');
+  assert.equal(integrated.resolutions, 1, '裁决广播应清除 1 条冲突');
+  assert.equal(b.repo.findById('product', 'prod1')!.name, 'A 名', '值收敛到裁决值');
+  assert.equal(listConflicts(b.db, { status: 0 }).length, 0, 'B 端未处理冲突已清除');
+  assert.equal(syncStatus(b.db, { deviceId: 'devB' }).conflictCount, 0);
+
   m.db.close();
   a.db.close();
   b.db.close();
