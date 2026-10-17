@@ -171,6 +171,14 @@ export interface WindowApi {
     ): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>;
   };
 
+  // ---------------- 操作日志（P2 审计） ----------------
+  opLog: {
+    /** 操作日志列表（按时间倒序，可按操作人 / 动作 / 实体 / 日期过滤） */
+    list(filter?: OpLogFilter): Promise<OpLogRow[]>;
+    /** 操作日志详情（含变更前后快照） */
+    get(id: string): Promise<OpLogDetail | null>;
+  };
+
   // ---------------- 同步（P7） ----------------
   sync: {
     /** 同步中心状态：待同步 / 冲突 / 上次同步 + 配置 + 主节点服务状态 */
@@ -627,6 +635,42 @@ export interface AccountFlowRow {
   partner_name: string | null;
   amount: number;
   status: number;
+}
+
+// ---------------- 操作日志（P2 审计） ----------------
+
+/** 操作日志动作。 */
+export type OpLogAction = 'audit' | 'unaudit' | 'reverse' | 'transfer';
+
+/** 操作日志过滤条件（时间为毫秒，闭区间）。 */
+export interface OpLogFilter {
+  keyword?: string;
+  action?: string;
+  entity?: string;
+  userId?: string;
+  startDate?: number;
+  endDate?: number;
+  limit?: number;
+}
+
+/** 操作日志列表行（日志 + 操作人）。 */
+export interface OpLogRow {
+  id: string;
+  user_id: string | null;
+  user_name: string | null;
+  account: string | null;
+  action: string;
+  entity: string;
+  entity_id: string;
+  device_id: string | null;
+  at: number;
+}
+
+/** 操作日志详情（含变更前后快照）。 */
+export interface OpLogDetail extends OpLogRow {
+  before_json: string | null;
+  after_json: string | null;
+  ip: string | null;
 }
 
 // ---------------- 报表（P5） ----------------

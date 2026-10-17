@@ -8,8 +8,14 @@
  */
 
 import { createRequire } from 'node:module';
+import { join } from 'node:path';
 
-const require = createRequire(__filename);
+/**
+ * 解析原生模块用的 require 必须以当前模块为锚点：
+ * - 打包后主进程按 CJS 运行，`__filename` 可用，直接以它为基准；
+ * - 源码 / tsx 测试环境按 ESM 运行，`__filename` 不存在，退回工程目录（pnpm 运行时为包根目录）。
+ */
+const require = createRequire(typeof __filename === 'string' ? __filename : join(process.cwd(), 'index.cjs'));
 
 export interface SqlRunResult {
   changes: number;

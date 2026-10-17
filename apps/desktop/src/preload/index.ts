@@ -183,6 +183,14 @@ const api = {
     export: (kind: string, filter?: unknown) => ipcRenderer.invoke('report:export', kind, filter),
   },
 
+  // ---------------- 操作日志（P2 审计） ----------------
+  opLog: {
+    /** 操作日志列表（按时间倒序，可按操作人 / 动作 / 实体 / 日期过滤） */
+    list: (filter?: unknown) => ipcRenderer.invoke('op-log:list', filter),
+    /** 操作日志详情（含变更前后快照） */
+    get: (id: string) => ipcRenderer.invoke('op-log:get', id),
+  },
+
   // ---------------- 同步（P7） ----------------
   sync: {
     /** 同步中心状态：待同步 / 冲突 / 上次同步 + 配置 + 主节点服务状态 */

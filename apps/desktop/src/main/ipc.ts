@@ -25,6 +25,7 @@ import {
   search,
 } from './services/master-data';
 import { nextCode } from './services/code-rule';
+import { getOpLog, listOpLog, type OpLogFilter } from './services/op-log';
 import {
   audit as auditDoc,
   get as getDoc,
@@ -356,6 +357,12 @@ export function registerIpcHandlers(db: SqlDatabase, dbFile: string): void {
       return { ok: false, error: errorMessage(err) };
     }
   });
+
+  // ---------------- 操作日志（P2 审计） ----------------
+
+  ipcMain.handle('op-log:list', (_event, filter?: OpLogFilter) => listOpLog(db, filter ?? {}));
+
+  ipcMain.handle('op-log:get', (_event, id: string) => getOpLog(db, id));
 
   // ---------------- 同步（P7） ----------------
 

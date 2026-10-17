@@ -370,6 +370,7 @@ class NsisTarget extends core_1.Target {
             }
         }
         else {
+            // PATCH(Linux): 交叉构建时优先用内置 UninstallerReader 直接解析安装包，避免依赖 wine。
             try {
                 await nsisUtil_1.UninstallerReader.exec(installerPath, uninstallerPath);
             }

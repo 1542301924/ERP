@@ -35,6 +35,7 @@ import ShipmentStatementView from '../views/reports/ShipmentStatementView.vue';
 import ShipmentCostView from '../views/reports/ShipmentCostView.vue';
 import GrossProfitView from '../views/reports/GrossProfitView.vue';
 import SyncCenterView from '../views/system/SyncCenterView.vue';
+import OpLogView from '../views/system/OpLogView.vue';
 import BackupView from '../views/system/BackupView.vue';
 import SettingsView from '../views/system/SettingsView.vue';
 import UsersView from '../views/system/UsersView.vue';
@@ -99,9 +100,10 @@ const reportViews: Record<string, Component> = {
   '/reports/gross-profit': GrossProfitView,
 };
 
-/** P7/P8 系统页面（用户与角色权限 / 同步中心 / 数据备份恢复 / 设置）。 */
+/** P7/P8 系统页面（用户与角色权限 / 操作日志 / 同步中心 / 数据备份恢复 / 设置）。 */
 const systemViews: Record<string, Component> = {
   '/system/users': UsersView,
+  '/system/op-log': OpLogView,
   '/system/sync': SyncCenterView,
   '/system/backup': BackupView,
   '/system/settings': SettingsView,

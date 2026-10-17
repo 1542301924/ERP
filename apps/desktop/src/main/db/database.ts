@@ -5,14 +5,29 @@
  * - 通过 `sys_config.schema_version` 记录并执行 `schema.sql`（幂等，后续迁移在此接入）。
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { newId, SysConfigKey } from '@inventory/shared';
 import { createDatabase, type SqlDatabase } from './sqlite';
 
 export const SCHEMA_VERSION = 4;
 
-const SCHEMA_SQL = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
+/**
+ * schema.sql 的位置：
+ * - 打包后主进程按 CJS 运行，schema.sql 与入口同目录（由 scripts/copy-assets.mjs 拷贝）；
+ * - 源码 / tsx 测试环境按 ESM 运行，`__dirname` 不存在，退回工程目录下的源文件。
+ */
+function resolveSchemaFile(): string {
+  const candidates =
+    typeof __dirname === 'string'
+      ? [join(__dirname, 'schema.sql')]
+      : [join(process.cwd(), 'src/main/db/schema.sql'), join(process.cwd(), 'dist/main/schema.sql')];
+  const found = candidates.find((file) => existsSync(file));
+  if (!found) throw new Error(`未找到数据库 schema 文件，已尝试：${candidates.join(' / ')}`);
+  return found;
+}
+
+const SCHEMA_SQL = readFileSync(resolveSchemaFile(), 'utf8');
 
 /** 需要新增 `reversal_of` 列的单据表（硬编码字面量，不接受外部输入）。 */
 const REVERSAL_OF_TABLES = [
