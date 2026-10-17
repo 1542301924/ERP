@@ -17,6 +17,13 @@ const DEFAULT_UNITS: Array<[string, string]> = [
   ['u_kg', 'kg'],
 ];
 
+/** 默认仓库 / 客户 / 供应商：装好即可直接开单，无需先建档。 */
+const DEFAULT_BASIC_DATA: Array<{ entity: string; id: string; name: string }> = [
+  { entity: 'warehouse', id: 'wh_default', name: '主仓库' },
+  { entity: 'customer', id: 'cus_default', name: '普通客户' },
+  { entity: 'supplier', id: 'sup_default', name: '普通供应商' },
+];
+
 /** 默认管理员账号（首次登录用；密码为占位默认值，P1 接入登录后强制修改）。 */
 const DEFAULT_ADMIN_ACCOUNT = 'admin';
 const DEFAULT_ADMIN_PASSWORD = 'admin123';
@@ -42,6 +49,13 @@ export function seedDefaultData(db: SqlDatabase, options: { deviceId?: string } 
   // 默认单位
   for (const [id, name] of DEFAULT_UNITS) {
     if (!repo.findById('unit', id)) repo.insert('unit', { name, sort: 0, status: 1 }, id);
+  }
+
+  // 默认基础资料：已存在同 id 或同名（含手工建档）时跳过，避免重复
+  for (const item of DEFAULT_BASIC_DATA) {
+    if (repo.findById(item.entity, item.id)) continue;
+    if (repo.list(item.entity).some((row) => String(row.name) === item.name)) continue;
+    repo.insert(item.entity, { name: item.name, status: 1 }, item.id);
   }
 
   // 默认管理员角色

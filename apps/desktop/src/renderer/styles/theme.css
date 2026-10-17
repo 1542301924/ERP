@@ -81,3 +81,23 @@ body {
 .card-gap {
   margin-bottom: 16px;
 }
+
+/* 表格横向滚动条常显：窗口变窄或列较多时，可直接拖动查看右侧列。
+   Element Plus 默认靠 v-show 仅在悬停时显示，这里用 !important 覆盖其内联 display:none。 */
+.el-table .el-scrollbar__bar.is-horizontal {
+  display: block !important;
+  height: 10px;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+}
+
+.el-table .el-scrollbar__bar.is-horizontal > div {
+  height: 100%;
+  background-color: var(--el-text-color-secondary);
+  opacity: 0.55;
+}
+
+.el-table .el-scrollbar__bar.is-horizontal:hover > div {
+  opacity: 0.85;
+}
