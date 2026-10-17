@@ -7,6 +7,10 @@ appId: com.qingsong.inventory
 productName: 轻松进销存
 copyright: Copyright © 2026 轻松进销存
 
+# 离线交付、不做自动更新：显式声明无发布渠道，
+# 避免 electron-builder 依据 GH_TOKEN 等环境变量误判 provider 而报错。
+publish: null
+
 directories:
   output: release
   buildResources: build
