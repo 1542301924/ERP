@@ -22,6 +22,8 @@ export interface SearchQuery {
   equals?: Record<string, string | number | null>;
   limit?: number;
   includeDeleted?: boolean;
+  /** 需要从结果中排除的列（如商品图片这类大字段），避免列表查询把它们整体回传。 */
+  omit?: string[];
 }
 
 /** 每个实体的默认关键字匹配字段。 */
@@ -92,8 +94,33 @@ export function search(db: SqlDatabase, entity: string, query: SearchQuery = {})
   }
 
   const limitSuffix = query.limit ? ` LIMIT ${Math.max(0, Math.floor(query.limit))}` : '';
-  const sql = `SELECT * FROM ${entity}${where.length ? ` WHERE ${where.join(' AND ')}` : ''}${limitSuffix}`;
+  const omitted = new Set(query.omit ?? []);
+  const projection = omitted.size > 0 ? [...columns].filter((c) => !omitted.has(c)) : [];
+  const select = projection.length > 0 ? projection.join(', ') : '*';
+  const sql = `SELECT ${select} FROM ${entity}${where.length ? ` WHERE ${where.join(' AND ')}` : ''}${limitSuffix}`;
   return db.prepare(sql).all(...params) as Row[];
+}
+
+/**
+ * 批量取商品图片（仅返回带图商品）。
+ *
+ * 商品列表查询会排除 `product.image` 这个 base64 大字段，列表里的缩略图另行批量补齐，
+ * 这样既能在列表看到图片，又不会让每次查询都把整列图片回传一遍。
+ */
+export function productThumbnails(db: SqlDatabase, ids: string[]): Record<string, string> {
+  const unique = [...new Set(ids.filter((id) => typeof id === 'string' && id.length > 0))].slice(0, 1000);
+  if (unique.length === 0) return {};
+
+  const placeholders = unique.map(() => '?').join(', ');
+  const rows = db
+    .prepare(
+      `SELECT id, image FROM product WHERE deleted = 0 AND image IS NOT NULL AND id IN (${placeholders})`,
+    )
+    .all(...unique);
+
+  const map: Record<string, string> = {};
+  for (const row of rows) map[row.id as string] = row.image as string;
+  return map;
 }
 
 /** 商品详情：商品 + 单位（带 unit_name）+ 条码。 */

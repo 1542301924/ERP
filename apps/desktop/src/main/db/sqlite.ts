@@ -131,7 +131,13 @@ function loadBetterSqlite(): any | null {
 export function createDatabase(file: string): SqlDatabase {
   const Better = loadBetterSqlite();
   if (Better) {
-    return new BetterSqliteAdapter(new Better(file));
+    try {
+      return new BetterSqliteAdapter(new Better(file));
+    } catch (err) {
+      // 模块本身在，但原生二进制与当前平台/ABI 不匹配（如交叉打包替换过 .node）：
+      // 不静默吞掉，留下痕迹后回退到 node:sqlite。
+      console.warn(`better-sqlite3 加载失败，回退到 node:sqlite：${err instanceof Error ? err.message : String(err)}`);
+    }
   }
   // 回退：Node 内置 node:sqlite
   const { DatabaseSync } = require('node:sqlite');

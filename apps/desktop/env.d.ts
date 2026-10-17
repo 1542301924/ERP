@@ -60,10 +60,16 @@ export interface WindowApi {
       equals?: Record<string, string | number | null>;
       limit?: number;
       includeDeleted?: boolean;
+      /** 需要从结果中排除的列（如商品图片这类大字段） */
+      omit?: string[];
     },
   ): Promise<Record<string, unknown>[]>;
   getById(entity: string, id: string): Promise<Record<string, unknown> | null>;
   productDetail(id: string): Promise<ProductDetail | null>;
+  /** 商品列表缩略图批量补齐（返回 id → data URL，仅含带图商品） */
+  productThumbnails(ids: string[]): Promise<Record<string, string>>;
+  /** 选择本地图片并压缩为 data URL（不拉库，随商品保存一起写） */
+  pickProductImage(): Promise<ProductImagePickResult>;
   lookupBarcode(barcode: string): Promise<LookupBarcodeResult | null>;
   saveProductUnit(input: {
     id?: string;
@@ -336,6 +342,14 @@ export interface LookupBarcodeResult {
   product: Record<string, unknown>;
   matchedBy: 'product' | 'product_unit' | 'product_barcode';
   unit?: Record<string, unknown>;
+}
+
+/** 商品图片选择结果：`canceled` 表示用户取消，`dataUrl` 为压缩后的图片。 */
+export interface ProductImagePickResult {
+  ok: boolean;
+  canceled?: boolean;
+  dataUrl?: string;
+  error?: string;
 }
 
 /** Excel 导入结果（`row` 为物理 Excel 行号，表头为第 1 行）。 */

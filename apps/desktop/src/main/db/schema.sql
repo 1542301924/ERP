@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS product (
   init_cost REAL DEFAULT 0,                       -- 期初初始成本
   min_stock REAL,
   max_stock REAL,                                 -- 预警阈值（可选）
+  image TEXT,                                     -- 商品图片（压缩后的 data URL，前端直接当 src 用）
   status INTEGER DEFAULT 1,                       -- 1=启用 0=停用
   -- [+ 同步字段 §4.2]
   created_by    TEXT NOT NULL,

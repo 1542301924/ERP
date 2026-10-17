@@ -46,6 +46,7 @@ const ADDED_COLUMNS: ReadonlyArray<{ table: string; column: string; definition: 
   { table: 'stock_check_item', column: 'qty', definition: 'REAL' },
   { table: 'ap_payment', column: 'status', definition: 'INTEGER DEFAULT 0' },
   { table: 'ar_receipt', column: 'status', definition: 'INTEGER DEFAULT 0' },
+  { table: 'product', column: 'image', definition: 'TEXT' },
 ];
 
 /** 幂等判断某表是否已含某列。 */

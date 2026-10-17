@@ -25,6 +25,8 @@ interface ProductRow {
   init_cost: number;
   min_stock: number | null;
   max_stock: number | null;
+  /** 商品图片（data URL，导入时已压缩）。 */
+  image: string | null;
   status: number;
 }
 
@@ -108,6 +110,9 @@ const scanCode = ref('');
 const scanning = ref(false);
 const scanResult = ref<ScanResult | null>(null);
 
+/** 列表缩略图：id → data URL（仅带图商品，随列表查询批量补齐）。 */
+const thumbs = ref<Record<string, string>>({});
+
 const rules: FormRules = {
   code: [{ required: true, message: '请输入商品编号', trigger: 'blur' }],
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
@@ -142,6 +147,7 @@ function emptyProduct(): ProductRow {
     init_cost: 0,
     min_stock: null,
     max_stock: null,
+    image: null,
     status: 1,
   };
 }
@@ -170,6 +176,7 @@ function pickProduct(p: Record<string, unknown>): ProductRow {
     init_cost: Number(p.init_cost ?? 0),
     min_stock: num(p.min_stock),
     max_stock: num(p.max_stock),
+    image: text(p.image),
     status: Number(p.status ?? 1),
   };
 }
@@ -259,7 +266,8 @@ async function queryList(): Promise<void> {
       fields?: string[];
       equals?: Record<string, string | number | null>;
       limit?: number;
-    } = { limit: 500 };
+      omit?: string[];
+    } = { limit: 500, omit: ['image'] };
     const key = searchForm.keyword.trim();
     if (key) {
       opts.keyword = key;
@@ -270,10 +278,38 @@ async function queryList(): Promise<void> {
     if (typeof searchForm.status === 'number') equals.status = searchForm.status;
     if (Object.keys(equals).length) opts.equals = equals;
     rows.value = (await api().search('product', opts)) as unknown as ProductRow[];
+    await loadThumbs();
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : String(err));
   } finally {
     loading.value = false;
+  }
+}
+
+/** 批量补齐列表缩略图（一次请求，不在列表里回传整列 base64）。 */
+async function loadThumbs(): Promise<void> {
+  thumbs.value = {};
+  const ids = rows.value.map((r) => r.id).filter(Boolean);
+  if (ids.length === 0) return;
+  try {
+    thumbs.value = await api().productThumbnails(ids);
+  } catch {
+    thumbs.value = {};
+  }
+}
+
+/** 选择本地图片，压缩后放进表单（保存商品时一并写库）。 */
+async function chooseImage(): Promise<void> {
+  try {
+    const res = await api().pickProductImage();
+    if (res.canceled) return;
+    if (!res.ok || !res.dataUrl) {
+      ElMessage.error(res.error ?? '选择图片失败');
+      return;
+    }
+    form.image = res.dataUrl;
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : String(err));
   }
 }
 
@@ -438,6 +474,7 @@ async function submit(): Promise<void> {
       init_cost: Number(form.init_cost) || 0,
       min_stock: form.min_stock ?? null,
       max_stock: form.max_stock ?? null,
+      image: form.image,
       status: form.status,
     };
     const saved = await save({ ...payload, id: form.id || undefined });
@@ -589,6 +626,19 @@ onMounted(async () => {
 
     <el-card>
       <el-table v-loading="loading" :data="rows" empty-text="暂无商品数据" border stripe>
+        <el-table-column label="图片" width="76" align="center">
+          <template #default="{ row }">
+            <el-image
+              v-if="thumbs[row.id]"
+              :src="thumbs[row.id]"
+              :preview-src-list="[thumbs[row.id]]"
+              preview-teleported
+              fit="contain"
+              class="product-thumb"
+            />
+            <span v-else class="product-thumb-none">—</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="code" label="商品编号" width="140" />
         <el-table-column prop="name" label="名称" min-width="160" />
         <el-table-column label="类别" width="140">
@@ -620,6 +670,30 @@ onMounted(async () => {
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑商品' : '新增商品'" width="900px" top="5vh">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <el-form-item label="商品图片">
+          <div class="product-image">
+            <el-image
+              v-if="form.image"
+              :src="form.image"
+              :preview-src-list="[form.image]"
+              preview-teleported
+              fit="contain"
+              class="product-image__preview"
+            />
+            <div v-else class="product-image__empty">暂无图片</div>
+            <div class="product-image__side">
+              <div>
+                <el-button size="small" @click="chooseImage">
+                  {{ form.image ? '更换图片' : '选择图片' }}
+                </el-button>
+                <el-button v-if="form.image" size="small" type="danger" plain @click="form.image = null">
+                  移除
+                </el-button>
+              </div>
+              <p class="product-image__tip">支持 JPG / PNG，导入时按最长边 600px 自动压缩后保存</p>
+            </div>
+          </div>
+        </el-form-item>
         <el-row :gutter="12">
           <el-col :span="12">
             <el-form-item label="商品编号" prop="code">
@@ -880,5 +954,52 @@ onMounted(async () => {
 }
 .section-title {
   margin: 0 0 8px;
+}
+
+/* 列表缩略图 */
+.product-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  cursor: zoom-in;
+}
+.product-thumb-none {
+  color: var(--text-3);
+}
+
+/* 编辑弹窗里的图片字段 */
+.product-image {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.product-image__preview,
+.product-image__empty {
+  width: 120px;
+  height: 120px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.product-image__preview {
+  cursor: zoom-in;
+}
+.product-image__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.product-image__side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.product-image__tip {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-3);
 }
 </style>

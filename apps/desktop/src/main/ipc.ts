@@ -6,7 +6,7 @@
  * 文件选择与落盘只在本文件处理（electron dialog + node:fs/promises）。
  */
 
-import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHlc, SysConfigKey, type Row } from '@inventory/shared';
@@ -20,6 +20,7 @@ import {
   getById,
   lookupBarcode,
   productDetail,
+  productThumbnails,
   saveCategory,
   saveProductUnit,
   search,
@@ -131,6 +132,33 @@ export interface MutateRequest {
 
 const XLSX_FILTERS = [{ name: 'Excel 工作簿', extensions: ['xlsx'] }];
 const DB_FILTERS = [{ name: 'SQLite 备份文件', extensions: ['db'] }];
+const IMAGE_FILTERS = [{ name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'bmp', 'webp'] }];
+
+/** 商品图片导入的最大边长（像素）与 JPEG 质量。 */
+const PRODUCT_IMAGE_MAX_SIDE = 600;
+const PRODUCT_IMAGE_JPEG_QUALITY = 80;
+
+/**
+ * 读取本地图片并压缩成 data URL（存进 `product.image`）。
+ *
+ * 用 Electron 自带的 nativeImage 缩放转码，不引入额外图像库；
+ * 统一输出 JPEG 以控制单条记录的体积（通常 30–80KB），避免拖慢列表与同步。
+ */
+function readProductImage(filePath: string): string {
+  const image = nativeImage.createFromPath(filePath);
+  if (image.isEmpty()) throw new Error('无法识别该图片，请选择 JPG / PNG 格式的文件');
+  const { width, height } = image.getSize();
+  const longest = Math.max(width, height);
+  const sized =
+    longest > PRODUCT_IMAGE_MAX_SIDE
+      ? image.resize({
+          width: Math.max(1, Math.round((width * PRODUCT_IMAGE_MAX_SIDE) / longest)),
+          height: Math.max(1, Math.round((height * PRODUCT_IMAGE_MAX_SIDE) / longest)),
+          quality: 'good',
+        })
+      : image;
+  return `data:image/jpeg;base64,${sized.toJPEG(PRODUCT_IMAGE_JPEG_QUALITY).toString('base64')}`;
+}
 
 function focusedWindow(): BrowserWindow | undefined {
   return BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
@@ -232,6 +260,11 @@ export function registerIpcHandlers(db: SqlDatabase, dbFile: string): void {
   ipcMain.handle('md:getById', (_event, entity: string, id: string) => getById(db, entity, id));
 
   ipcMain.handle('md:productDetail', (_event, id: string) => productDetail(db, id));
+
+  /** 商品列表缩略图批量补齐（仅返回带图商品，见 master-data.productThumbnails）。 */
+  ipcMain.handle('md:productThumbnails', (_event, ids: string[]) =>
+    productThumbnails(db, Array.isArray(ids) ? ids : []),
+  );
 
   ipcMain.handle('md:lookupBarcode', (_event, barcode: string) => lookupBarcode(db, barcode));
 
@@ -429,6 +462,24 @@ export function registerIpcHandlers(db: SqlDatabase, dbFile: string): void {
       const buffer = await buildTemplateBuffer(id);
       await writeFile(res.filePath, buffer);
       return { ok: true, path: res.filePath };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  // ---------------- 商品图片 ----------------
+
+  /**
+   * 选择本地图片并压缩为 data URL 返回（不落库）。
+   * 由渲染进程放进商品表单，随商品保存一起写库，这样图片自然带上版本与同步字段。
+   */
+  ipcMain.handle('product:pickImage', async () => {
+    try {
+      const options: OpenDialogOptions = { properties: ['openFile'], filters: IMAGE_FILTERS };
+      const win = focusedWindow();
+      const res = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+      if (res.canceled || res.filePaths.length === 0) return { ok: true, canceled: true };
+      return { ok: true, dataUrl: readProductImage(res.filePaths[0]) };
     } catch (err) {
       return { ok: false, error: errorMessage(err) };
     }

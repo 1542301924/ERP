@@ -65,12 +65,17 @@ const api = {
       equals?: Record<string, string | number | null>;
       limit?: number;
       includeDeleted?: boolean;
+      omit?: string[];
     },
   ) => ipcRenderer.invoke('md:search', entity, query),
   /** 按 id 取一行 */
   getById: (entity: string, id: string) => ipcRenderer.invoke('md:getById', entity, id),
   /** 商品详情：商品 + 单位 + 条码 */
   productDetail: (id: string) => ipcRenderer.invoke('md:productDetail', id),
+  /** 商品列表缩略图批量补齐（返回 id → data URL，仅含带图商品） */
+  productThumbnails: (ids: string[]) => ipcRenderer.invoke('md:productThumbnails', ids),
+  /** 选择本地图片并压缩为 data URL（不落库，随商品保存一起写） */
+  pickProductImage: () => ipcRenderer.invoke('product:pickImage'),
   /** 条码查询 */
   lookupBarcode: (barcode: string) => ipcRenderer.invoke('md:lookupBarcode', barcode),
   /** 保存商品单位（按 product_id + unit_id upsert） */
