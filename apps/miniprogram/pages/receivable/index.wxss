@@ -1,0 +1,9 @@
+.total-tip {
+  margin-bottom: 12rpx;
+}
+
+.outstanding {
+  color: #d54941;
+  font-weight: 700;
+  font-size: 32rpx;
+}

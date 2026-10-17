@@ -1,0 +1,20 @@
+.total-tip {
+  margin-bottom: 12rpx;
+}
+
+.doc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.doc-no {
+  font-weight: 600;
+  font-size: 30rpx;
+}
+
+.doc-amount {
+  color: #d54941;
+  font-weight: 600;
+}

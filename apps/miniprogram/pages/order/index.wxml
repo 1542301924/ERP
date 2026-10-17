@@ -1,0 +1,112 @@
+<view class="page-body">
+  <t-toast id="t-toast" />
+
+  <view class="card">
+    <view class="card-title">单据信息</view>
+
+    <t-loading wx:if="{{metaLoading}}" theme="circular" size="40rpx" text="加载中" />
+    <block wx:elif="{{metaError}}">
+      <view class="empty">客户/仓库加载失败</view>
+      <view class="center">
+        <t-button theme="primary" variant="outline" size="small" bind:tap="loadMeta">重新加载</t-button>
+      </view>
+    </block>
+
+    <block wx:else>
+      <picker mode="selector" range="{{customerNames}}" value="{{customerIndex}}" bindchange="onCustomerChange">
+        <view class="row">
+          <text class="row-label">客户</text>
+          <text>{{customerIndex >= 0 ? customerNames[customerIndex] : '请选择'}}</text>
+        </view>
+      </picker>
+
+      <picker mode="selector" range="{{warehouseNames}}" value="{{warehouseIndex}}" bindchange="onWarehouseChange">
+        <view class="row">
+          <text class="row-label">仓库</text>
+          <text>{{warehouseIndex >= 0 ? warehouseNames[warehouseIndex] : '请选择'}}</text>
+        </view>
+      </picker>
+
+      <picker mode="date" value="{{bizDate}}" bindchange="onDateChange">
+        <view class="row">
+          <text class="row-label">业务日期</text>
+          <text>{{bizDate}}</text>
+        </view>
+      </picker>
+
+      <view class="row">
+        <text class="row-label">备注</text>
+      </view>
+      <t-textarea value="{{remark}}" placeholder="可选备注" bind:change="onRemarkChange" />
+    </block>
+  </view>
+
+  <view class="card">
+    <view class="card-title">添加商品</view>
+    <t-search
+      value="{{keyword}}"
+      placeholder="输入商品编码/名称后搜索"
+      bind:change="onKeywordChange"
+      bind:submit="searchProducts"
+      bind:action="searchProducts"
+    />
+    <view class="scan-btn">
+      <t-button theme="primary" variant="outline" size="small" block bind:tap="onScan">扫码添加</t-button>
+    </view>
+
+    <t-loading wx:if="{{searching}}" theme="circular" size="36rpx" text="搜索中" />
+    <view wx:elif="{{options.length > 0}}" class="options">
+      <view
+        wx:for="{{options}}"
+        wx:key="productId"
+        class="opt-row"
+        data-index="{{index}}"
+        bind:tap="addProduct"
+      >
+        <view class="opt-main">
+          <view class="opt-name">{{item.name}}</view>
+          <view class="muted">{{item.code}} · {{item.spec || '无规格'}} · 库存 {{item.qtyText}}</view>
+        </view>
+        <text class="opt-add">添加</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">明细（{{items.length}}）</view>
+    <view wx:if="{{items.length === 0}}" class="empty">暂无明细，请先添加商品</view>
+    <view wx:for="{{items}}" wx:key="productId" class="detail-item">
+      <view class="detail-head">
+        <view class="detail-main">
+          <view class="detail-name">{{item.productName}}</view>
+          <view class="muted">单位：{{item.unit || '-'}}</view>
+        </view>
+        <text class="detail-remove" data-index="{{index}}" bind:tap="removeItem">删除</text>
+      </view>
+      <view class="row">
+        <text class="row-label">数量</text>
+        <t-stepper value="{{item.qty}}" min="0" data-index="{{index}}" bind:change="onQtyChange" />
+      </view>
+      <view class="row">
+        <text class="row-label">单价</text>
+        <view class="price-input">
+          <t-input type="number" value="{{item.price}}" data-index="{{index}}" bind:change="onPriceChange" />
+        </view>
+      </view>
+      <view class="row">
+        <text class="row-label">金额</text>
+        <text class="detail-amount">￥{{item.amountText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <text class="row-label">合计金额</text>
+      <text class="total-amount">￥{{totalText}}</text>
+    </view>
+    <view class="submit-btn">
+      <t-button theme="primary" block loading="{{submitting}}" bind:tap="onSubmit">提交</t-button>
+    </view>
+  </view>
+</view>

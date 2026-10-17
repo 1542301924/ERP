@@ -1,0 +1,33 @@
+<view class="page-body">
+  <t-toast id="t-toast" />
+
+  <view class="card user-card">
+    <t-avatar size="large">{{user ? user.name : '游'}}</t-avatar>
+    <view class="user-info">
+      <view class="user-name">{{user ? user.name : '未登录'}}</view>
+      <view class="muted">{{user ? ((user.account || '') + ' · ' + (user.roleName || '无角色')) : '尚未登录'}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{!envReady}}" class="env-warn" bind:tap="onEnvTap">
+    云环境未就绪：请检查云开发配置后重新编译
+  </view>
+
+  <view class="group">
+    <t-cell-group>
+      <t-cell title="我的应收" arrow bind:tap="goReceivable" />
+      <t-cell title="我的单据" arrow bind:tap="goDocs" />
+      <t-cell title="同步状态" description="{{queueDesc}}" arrow bind:tap="onFlush" />
+    </t-cell-group>
+  </view>
+
+  <view class="group">
+    <t-cell-group>
+      <t-cell title="切换账号" arrow bind:tap="onSwitchAccount" />
+    </t-cell-group>
+  </view>
+
+  <view wx:if="{{!user}}" class="center">
+    <t-button theme="primary" variant="outline" size="small" bind:tap="login">立即登录</t-button>
+  </view>
+</view>

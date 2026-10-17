@@ -1,3 +1,6 @@
+# apps/miniprogram 不进 workspace：
+# 它由「微信开发者工具」独立构建，且该工具的「构建 npm」要求项目内存在实体
+# node_modules（pnpm 的软链结构无法被它正确解析），故单独用 npm 安装依赖。
 packages:
-  - "apps/*"
+  - "apps/desktop"
   - "packages/*"

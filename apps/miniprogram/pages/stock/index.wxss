@@ -1,0 +1,62 @@
+.search-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-btn {
+  margin-left: 16rpx;
+}
+
+.total-tip {
+  margin-bottom: 12rpx;
+}
+
+.stock-card {
+  padding: 24rpx;
+}
+
+.row-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 6rpx;
+}
+
+.stock-sub {
+  margin-bottom: 12rpx;
+}
+
+.stock-qty {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 12rpx;
+}
+
+.qty-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #0052d9;
+  margin-right: 20rpx;
+}
+
+.qty-label {
+  font-size: 24rpx;
+}
+
+.stock-foot {
+  display: flex;
+  justify-content: space-between;
+}
+
+.center {
+  text-align: center;
+}
+
+.retry {
+  margin-top: 16rpx;
+}

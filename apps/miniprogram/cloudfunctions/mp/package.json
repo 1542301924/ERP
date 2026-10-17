@@ -1,0 +1,9 @@
+{
+  "name": "mp",
+  "version": "1.0.0",
+  "description": "轻松进销存小程序云函数（登录绑定 / 查库存 / 开单 / 我的应收）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -1,0 +1,60 @@
+<view class="page-body">
+  <t-toast id="t-toast" />
+
+  <view class="card">
+    <view class="greeting">{{greeting}}，{{user ? user.name : '未登录'}}</view>
+    <view wx:if="{{user}}" class="muted">{{user.account || ''}} · {{user.roleName || '无角色'}}</view>
+    <view wx:else class="muted login-hint">您尚未登录，登录后可查看权限范围内的数据</view>
+    <view wx:if="{{!user}}" class="login-btn">
+      <t-button theme="primary" size="small" bind:tap="goLogin">去登录</t-button>
+    </view>
+  </view>
+
+  <view wx:if="{{queueTotal > 0}}" class="offline-banner" bind:tap="onFlush">
+    有 {{queueTotal}} 条操作待同步，点我立即同步
+  </view>
+
+  <view class="card">
+    <view class="card-title">库存预警</view>
+    <view wx:if="{{alertsFromCache}}" class="muted cache-tip">离线缓存数据</view>
+
+    <t-loading wx:if="{{alertsLoading}}" theme="circular" size="40rpx" text="加载中" />
+    <block wx:elif="{{alertsError}}">
+      <view class="empty">加载失败，请检查网络</view>
+      <view class="center">
+        <t-button theme="primary" variant="outline" size="small" bind:tap="loadAlerts">重新加载</t-button>
+      </view>
+    </block>
+    <t-empty wx:elif="{{alerts.length === 0}}" description="暂无库存预警" />
+    <block wx:else>
+      <view
+        wx:for="{{alerts}}"
+        wx:key="productId"
+        class="alert-row"
+        data-product-id="{{item.productId}}"
+        bind:tap="openAlert"
+      >
+        <view class="alert-main">
+          <view class="alert-name">{{item.name}}</view>
+          <view class="muted">{{item.code}} · 库存 {{item.qtyText}} / 阈值 {{item.minText}}</view>
+        </view>
+        <t-tag theme="{{item.tagTheme}}" variant="light" size="small">{{item.tagText}}</t-tag>
+      </view>
+    </block>
+  </view>
+
+  <view class="card">
+    <view class="card-title">快捷入口</view>
+    <view class="quick">
+      <view class="quick-btn">
+        <t-button theme="primary" variant="outline" block bind:tap="onScan">扫一扫</t-button>
+      </view>
+      <view class="quick-btn">
+        <t-button theme="primary" variant="outline" block bind:tap="goReceivable">我的应收</t-button>
+      </view>
+      <view class="quick-btn">
+        <t-button theme="primary" variant="outline" block bind:tap="goDocs">我的单据</t-button>
+      </view>
+    </view>
+  </view>
+</view>

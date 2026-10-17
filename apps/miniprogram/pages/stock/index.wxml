@@ -1,0 +1,53 @@
+<view class="page-body">
+  <t-toast id="t-toast" />
+
+  <view class="search-bar">
+    <view class="search-input">
+      <t-search
+        value="{{keyword}}"
+        placeholder="商品编码/名称"
+        bind:change="onKeywordChange"
+        bind:submit="onSearch"
+        bind:action="onSearch"
+      />
+    </view>
+    <view class="search-btn">
+      <t-button theme="primary" size="small" bind:tap="onScan">扫码</t-button>
+    </view>
+  </view>
+
+  <view wx:if="{{total > 0}}" class="muted total-tip">共 {{total}} 条</view>
+
+  <view wx:if="{{items.length > 0}}" class="list">
+    <view
+      wx:for="{{items}}"
+      wx:key="productId"
+      class="card stock-card"
+      data-product-id="{{item.productId}}"
+      bind:tap="openDetail"
+    >
+      <view class="row-name">{{item.name}}</view>
+      <view class="muted stock-sub">{{item.code}} · {{item.spec || '无规格'}} · 单位 {{item.unit || '-'}}</view>
+      <view class="stock-qty">
+        <text class="qty-num">{{item.qtyText}}</text>
+        <text class="qty-label muted">可用 {{item.availText}}</text>
+      </view>
+      <view class="stock-foot">
+        <text class="muted">均价 ￥{{item.costText}}</text>
+        <text class="muted">{{item.warehouseName || '未知仓库'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <t-loading wx:if="{{loading}}" theme="circular" size="40rpx" text="加载中" />
+
+  <block wx:if="{{!loading && items.length === 0}}">
+    <t-empty wx:if="{{error}}" description="加载失败，请下拉重试" />
+    <t-empty wx:else description="没有查询到库存" />
+    <view wx:if="{{error}}" class="center retry">
+      <t-button theme="primary" variant="outline" size="small" bind:tap="onSearch">重新查询</t-button>
+    </view>
+  </block>
+
+  <view wx:if="{{finished && items.length > 0}}" class="empty">没有更多了</view>
+</view>

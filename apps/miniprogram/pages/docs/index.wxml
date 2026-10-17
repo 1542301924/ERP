@@ -1,0 +1,37 @@
+<view class="page-body">
+  <t-toast id="t-toast" />
+
+  <view wx:if="{{total > 0}}" class="muted total-tip">共 {{total}} 张单据</view>
+
+  <view wx:for="{{items}}" wx:key="docId" class="card doc-card">
+    <view class="doc-head">
+      <text class="doc-no">{{item.docNo || '（无单号）'}}</text>
+      <t-tag theme="{{item.statusTheme}}" variant="light" size="small">{{item.statusText}}</t-tag>
+    </view>
+    <view class="row">
+      <text class="row-label">客户</text>
+      <text>{{item.customerName || '-'}}</text>
+    </view>
+    <view class="row">
+      <text class="row-label">金额</text>
+      <text class="doc-amount">￥{{item.amountText}}</text>
+    </view>
+    <view class="row">
+      <text class="row-label">明细条数</text>
+      <text>{{item.itemCount}}</text>
+    </view>
+    <view wx:if="{{item.bizDateText}}" class="row">
+      <text class="row-label">业务日期</text>
+      <text>{{item.bizDateText}}</text>
+    </view>
+  </view>
+
+  <t-loading wx:if="{{loading}}" theme="circular" size="40rpx" text="加载中" />
+
+  <block wx:if="{{!loading && items.length === 0}}">
+    <t-empty wx:if="{{error}}" description="加载失败，请下拉重试" />
+    <t-empty wx:else description="暂无单据" />
+  </block>
+
+  <view wx:if="{{finished && items.length > 0}}" class="empty">没有更多了</view>
+</view>

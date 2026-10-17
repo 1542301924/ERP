@@ -1,0 +1,13 @@
+{
+  "name": "qingsong-inventory-miniprogram",
+  "version": "0.0.0",
+  "private": true,
+  "description": "轻松进销存 — 微信小程序端（查库存 / 扫码 / 开单 / 我的应收）",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "lint:syntax": "node scripts/check-syntax.js"
+  },
+  "dependencies": {
+    "tdesign-miniprogram": "^1.9.2"
+  }
+}

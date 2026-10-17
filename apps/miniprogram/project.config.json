@@ -1,0 +1,19 @@
+{
+  "appid": "touristappid",
+  "projectname": "qingsong-inventory-mp",
+  "description": "轻松进销存 — 微信小程序端",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "libVersion": "3.5.5",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "packNpmManually": false,
+    "packNpmRelationList": []
+  },
+  "condition": {}
+}

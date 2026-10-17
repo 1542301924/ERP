@@ -1,0 +1,56 @@
+.greeting {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.login-hint {
+  margin-top: 8rpx;
+}
+
+.login-btn {
+  margin-top: 20rpx;
+}
+
+.cache-tip {
+  margin-bottom: 12rpx;
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.alert-row:last-child {
+  border-bottom: none;
+}
+
+.alert-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-name {
+  font-weight: 500;
+  margin-bottom: 4rpx;
+}
+
+.quick {
+  display: flex;
+  justify-content: space-between;
+}
+
+.quick-btn {
+  flex: 1;
+  margin-right: 16rpx;
+}
+
+.quick-btn:last-child {
+  margin-right: 0;
+}
+
+.center {
+  text-align: center;
+}

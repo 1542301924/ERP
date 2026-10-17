@@ -1,0 +1,89 @@
+.center {
+  text-align: center;
+}
+
+.scan-btn {
+  margin-top: 24rpx;
+}
+
+.options {
+  margin-top: 16rpx;
+}
+
+.opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.opt-row:last-child {
+  border-bottom: none;
+}
+
+.opt-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.opt-name {
+  font-weight: 500;
+  margin-bottom: 4rpx;
+}
+
+.opt-add {
+  color: #0052d9;
+  font-size: 26rpx;
+  margin-left: 16rpx;
+}
+
+.detail-item {
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.detail-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-name {
+  font-weight: 600;
+}
+
+.detail-remove {
+  color: #d54941;
+  font-size: 26rpx;
+  margin-left: 16rpx;
+}
+
+.price-input {
+  width: 240rpx;
+}
+
+.detail-amount {
+  color: #d54941;
+  font-weight: 600;
+}
+
+.total-amount {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #d54941;
+}
+
+.submit-btn {
+  margin-top: 24rpx;
+}
