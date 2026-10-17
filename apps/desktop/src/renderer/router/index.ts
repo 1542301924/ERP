@@ -37,6 +37,9 @@ import GrossProfitView from '../views/reports/GrossProfitView.vue';
 import SyncCenterView from '../views/system/SyncCenterView.vue';
 import BackupView from '../views/system/BackupView.vue';
 import SettingsView from '../views/system/SettingsView.vue';
+import UsersView from '../views/system/UsersView.vue';
+import LoginView from '../views/LoginView.vue';
+import { useAuthStore } from '../stores/auth';
 
 /** P1 主数据页面（基础资料 10 个菜单）。其余分组仍走 Placeholder。 */
 const basicViews: Record<string, Component> = {
@@ -89,8 +92,9 @@ const reportViews: Record<string, Component> = {
   '/reports/gross-profit': GrossProfitView,
 };
 
-/** P7 系统页面（同步中心 / 数据备份恢复 / 设置）。 */
+/** P7/P8 系统页面（用户与角色权限 / 同步中心 / 数据备份恢复 / 设置）。 */
 const systemViews: Record<string, Component> = {
+  '/system/users': UsersView,
   '/system/sync': SyncCenterView,
   '/system/backup': BackupView,
   '/system/settings': SettingsView,
@@ -202,6 +206,12 @@ const placeholderRoutes: RouteRecordRaw[] = MENU.flatMap((group) =>
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/login',
+    name: 'login',
+    component: LoginView,
+    meta: { title: '登录' },
+  },
+  {
     path: '/',
     component: MainLayout,
     redirect: '/workbench',
@@ -220,4 +230,18 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHashHistory(),
   routes,
+});
+
+/** 登录守卫：未登录跳登录页；已登录但角色无该菜单权限时回工作台。 */
+router.beforeEach(async (to) => {
+  const auth = useAuthStore();
+  if (!auth.ready) auth.restore();
+
+  if (to.path === '/login') return auth.loggedIn ? { path: '/workbench' } : true;
+  if (!auth.loggedIn) return { path: '/login' };
+
+  // 权限异步加载完成前先等待，避免刷新页面误判为无权限
+  if (!auth.permissions) await auth.refreshPermissions();
+  if (to.path !== '/workbench' && !auth.canAccess(to.path)) return { path: '/workbench' };
+  return true;
 });

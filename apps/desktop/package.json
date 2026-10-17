@@ -13,7 +13,7 @@
     "icon": "node scripts/make-icon.mjs",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "node --import tsx --test test/*.test.ts",
-    "dist": "pnpm build && pnpm build:main && electron-builder --win portable --config electron-builder.yml --publish never"
+    "dist": "pnpm build && pnpm build:main && electron-builder --win nsis portable --config electron-builder.yml --publish never"
   },
   "dependencies": {
     "@inventory/shared": "workspace:*",

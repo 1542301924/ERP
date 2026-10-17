@@ -23,6 +23,38 @@ const api = {
   setSettings: (patch: { allowNegativeStock?: boolean; autoLaunch?: boolean }) =>
     ipcRenderer.invoke('settings:set', patch),
 
+  // ---------------- 登录与权限 ----------------
+  auth: {
+    /** 登录页用户下拉（启用且未删除的账号） */
+    users: () => ipcRenderer.invoke('auth:users'),
+    /** 校验账号口令；口令为空的账号（如内置 admin）直接放行 */
+    login: (id: string, password: string) => ipcRenderer.invoke('auth:login', id, password),
+    /** 按角色取菜单权限 */
+    permissions: (roleId: string | null) => ipcRenderer.invoke('auth:permissions', roleId),
+    /** 用户列表（不下发口令摘要） */
+    listUsers: () => ipcRenderer.invoke('auth:listUsers'),
+    /** 新增 / 修改用户（password 传空串表示清除口令即免密） */
+    saveUser: (input: {
+      id?: string;
+      account: string;
+      name: string;
+      roleId?: string | null;
+      status?: number;
+      password?: string | null;
+    }) => ipcRenderer.invoke('auth:saveUser', input),
+    deleteUser: (id: string) => ipcRenderer.invoke('auth:deleteUser', id),
+    /** 角色列表（含在用用户数、已勾选权限数） */
+    listRoles: () => ipcRenderer.invoke('auth:listRoles'),
+    saveRole: (input: { id?: string; name: string; remark?: string | null }) =>
+      ipcRenderer.invoke('auth:saveRole', input),
+    deleteRole: (id: string) => ipcRenderer.invoke('auth:deleteRole', id),
+    /** 某角色已勾选的权限键 */
+    rolePermissions: (roleId: string) => ipcRenderer.invoke('auth:rolePermissions', roleId),
+    /** 全量替换角色权限 */
+    setRolePermissions: (roleId: string, keys: string[]) =>
+      ipcRenderer.invoke('auth:setRolePermissions', roleId, keys),
+  },
+
   // ---------------- 主数据 ----------------
   /** 条件查询（关键字 / 等值 / 分页） */
   search: (

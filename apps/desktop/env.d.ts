@@ -28,6 +28,29 @@ export interface WindowApi {
   /** 更新「设置」页开关（开机自启会同步系统登录项） */
   setSettings(patch: Partial<AppSettings>): Promise<AppSettings>;
 
+  // ---------------- 登录与权限 ----------------
+  auth: {
+    /** 登录页用户下拉（启用且未删除的账号） */
+    users(): Promise<LoginUser[]>;
+    /** 校验账号口令；口令为空的账号（如内置 admin）直接放行 */
+    login(id: string, password: string): Promise<AuthResult>;
+    /** 按角色取菜单权限 */
+    permissions(roleId: string | null): Promise<RolePermissions>;
+    /** 用户列表（不下发口令摘要） */
+    listUsers(): Promise<UserRow[]>;
+    /** 新增 / 修改用户（password 传空串表示清除口令即免密） */
+    saveUser(input: UserInput): Promise<Record<string, unknown>>;
+    deleteUser(id: string): Promise<void>;
+    /** 角色列表（含在用用户数、已勾选权限数） */
+    listRoles(): Promise<RoleRow[]>;
+    saveRole(input: RoleInput): Promise<Record<string, unknown>>;
+    deleteRole(id: string): Promise<void>;
+    /** 某角色已勾选的权限键 */
+    rolePermissions(roleId: string): Promise<string[]>;
+    /** 全量替换角色权限 */
+    setRolePermissions(roleId: string, keys: string[]): Promise<string[]>;
+  };
+
   // ---------------- 主数据 ----------------
   search(
     entity: string,
@@ -221,6 +244,73 @@ export interface AppSettings {
   allowNegativeStock: boolean;
   /** 开机自启。 */
   autoLaunch: boolean;
+}
+
+// ---------------- 登录与权限 ----------------
+
+/** 登录页下拉可选账号。 */
+export interface LoginUser {
+  id: string;
+  account: string;
+  name: string;
+}
+
+/** 登录成功后的会话用户。 */
+export interface SessionUser extends LoginUser {
+  roleId: string | null;
+  roleName: string | null;
+}
+
+/** 菜单权限：`all` 为 true 表示不受限。 */
+export interface RolePermissions {
+  all: boolean;
+  keys: string[];
+}
+
+/** 登录结果。 */
+export interface AuthResult {
+  ok: boolean;
+  user?: SessionUser;
+  permissions?: RolePermissions;
+  error?: string;
+}
+
+/** 用户列表行（不含口令摘要）。 */
+export interface UserRow {
+  id: string;
+  account: string;
+  name: string;
+  role_id: string | null;
+  role_name: string | null;
+  status: number;
+  created_at: number;
+}
+
+/** 新增 / 修改用户入参。 */
+export interface UserInput {
+  id?: string;
+  account: string;
+  name: string;
+  roleId?: string | null;
+  status?: number;
+  /** 提供即改密；空串表示清除口令（免密登录）。 */
+  password?: string | null;
+}
+
+/** 角色列表行。 */
+export interface RoleRow {
+  id: string;
+  name: string;
+  remark: string | null;
+  user_count: number;
+  perm_count: number;
+}
+
+/** 新增 / 修改角色入参。 */
+export interface RoleInput {
+  id?: string;
+  name: string;
+  remark?: string | null;
 }
 
 /** 分类树节点。 */

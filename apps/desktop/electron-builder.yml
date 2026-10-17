@@ -1,5 +1,8 @@
-# electron-builder 打包配置（Windows portable 免安装单文件）。
-# 产物：release/轻松进销存-<version>-portable.exe
+# electron-builder 打包配置。
+#
+# 同时产出两种 Windows 包，推荐使用**安装版**（启动无需解压，秒开）：
+#   1. 安装版   release/轻松进销存-<version>-setup.exe     ← 装一次，之后启动很快
+#   2. 免安装版 release/轻松进销存-<version>-portable.exe  ← 每次启动都要自解压到临时目录，首启较慢
 appId: com.qingsong.inventory
 productName: 轻松进销存
 copyright: Copyright © 2026 轻松进销存
@@ -20,18 +23,36 @@ files:
 # better-sqlite3 为原生模块，打包时按目标平台/Electron ABI 重建（Windows 宿主直接可用）。
 # 若从 Linux 交叉构建 Windows 包，需先预取 win32-x64 原生二进制，并追加命令行覆盖：
 #   prebuild-install --runtime electron --target 33.4.11 --arch x64 --platform win32
-#   electron-builder --win portable -c.npmRebuild=false
+#   electron-builder --win nsis portable -c.npmRebuild=false
 npmRebuild: true
 asarUnpack:
   - "**/node_modules/better-sqlite3/**"
 
 win:
   target:
+    - target: nsis
+      arch:
+        - x64
     - target: portable
       arch:
         - x64
-  artifactName: ${productName}-${version}-portable.${ext}
+
+nsis:
+  # 单用户安装（免管理员/UAC），装完即可用；可自选安装目录
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  # 不打包 elevate.exe（免管理员安装用不到，且其资源改写需要 wine）
+  packElevateHelper: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 轻松进销存
+  # 卸载时保留业务数据（%APPDATA% 下的数据库），避免误删账套
+  deleteAppDataOnUninstall: false
+  artifactName: ${productName}-${version}-setup.${ext}
 
 portable:
   # 解压后的运行目录名，避免用户在中文路径下二次解压出问题
   unpackDirName: qingsong-inventory
+  artifactName: ${productName}-${version}-portable.${ext}

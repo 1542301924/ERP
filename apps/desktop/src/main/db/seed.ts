@@ -3,10 +3,10 @@
  * 全部写入走统一写入口（Repository），因此同样会追加 `_change_log`。
  */
 
-import { createHash } from 'node:crypto';
 import { createHlc, SysConfigKey, SysConfigDefault } from '@inventory/shared';
 import { ensureDeviceId, getSysConfig, setSysConfig } from './database';
 import { Repository } from './repository';
+import { ADMIN_ROLE_ID, ADMIN_USER_ID, LEGACY_ADMIN_HASH } from '../services/auth';
 import type { SqlDatabase } from './sqlite';
 
 /** 默认单位 id -> 名称。 */
@@ -29,13 +29,8 @@ const DEFAULT_CODE_RULES: Array<{ target: string; seqLen: number }> = [
   { target: 'product', seqLen: 8 },
 ];
 
-/** 默认管理员账号（首次登录用；密码为占位默认值，P1 接入登录后强制修改）。 */
+/** 默认管理员账号：**免密登录**（口令留空即可，可在「用户与角色权限」中另行设置）。 */
 const DEFAULT_ADMIN_ACCOUNT = 'admin';
-const DEFAULT_ADMIN_PASSWORD = 'admin123';
-
-function hashPassword(plain: string): string {
-  return createHash('sha256').update(plain).digest('hex');
-}
 
 export function seedDefaultData(db: SqlDatabase, options: { deviceId?: string } = {}): void {
   const deviceId = options.deviceId ?? ensureDeviceId(db);
@@ -79,23 +74,27 @@ export function seedDefaultData(db: SqlDatabase, options: { deviceId?: string } 
   }
 
   // 默认管理员角色
-  if (!repo.findById('role', 'role_admin')) {
-    repo.insert('role', { name: '管理员', remark: '系统内置管理员角色' }, 'role_admin');
+  if (!repo.findById('role', ADMIN_ROLE_ID)) {
+    repo.insert('role', { name: '管理员', remark: '系统内置管理员角色' }, ADMIN_ROLE_ID);
   }
 
-  // 默认 admin 用户
-  if (!repo.findById('app_user', 'user_admin')) {
+  // 默认 admin 用户（免密）
+  if (!repo.findById('app_user', ADMIN_USER_ID)) {
     repo.insert(
       'app_user',
       {
         account: DEFAULT_ADMIN_ACCOUNT,
         name: '管理员',
-        pwd_hash: hashPassword(DEFAULT_ADMIN_PASSWORD),
-        role_id: 'role_admin',
+        pwd_hash: null,
+        role_id: ADMIN_ROLE_ID,
         status: 1,
       },
-      'user_admin',
+      ADMIN_USER_ID,
     );
+  } else {
+    // 老库迁移：早期版本内置默认口令为 admin123，升级后清空以支持免密登录
+    const admin = repo.findById('app_user', ADMIN_USER_ID)!;
+    if (admin.pwd_hash === LEGACY_ADMIN_HASH) repo.update('app_user', ADMIN_USER_ID, { pwd_hash: null });
   }
 }
 

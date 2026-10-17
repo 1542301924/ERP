@@ -104,6 +104,21 @@ import {
 } from './services/backup';
 import { readAppSettings, saveAppSettings, type AppSettings } from './services/settings';
 import { applyAutoLaunch } from './services/auto-launch';
+import {
+  deleteRole,
+  deleteUser,
+  listRoles,
+  listUsers,
+  login,
+  loginUsers,
+  rolePermissionKeys,
+  rolePermissions,
+  saveRole,
+  saveUser,
+  setRolePermissions,
+  type RoleInput,
+  type UserInput,
+} from './services/auth';
 
 export interface MutateRequest {
   op: 'insert' | 'update' | 'delete';
@@ -165,6 +180,27 @@ export function registerIpcHandlers(db: SqlDatabase, dbFile: string): void {
     if (patch?.autoLaunch !== undefined) applyAutoLaunch(next.autoLaunch);
     return next;
   });
+
+  // ---------------- 登录与权限 ----------------
+
+  /** 登录页用户下拉：启用且未删除的账号。 */
+  ipcMain.handle('auth:users', () => loginUsers(db));
+  /** 校验账号口令；口令为空的账号直接放行。 */
+  ipcMain.handle('auth:login', (_event, id: string, password: string) => login(db, id, password ?? ''));
+  /** 按角色取菜单权限（登录后刷新侧边栏用）。 */
+  ipcMain.handle('auth:permissions', (_event, roleId: string | null) => rolePermissions(db, roleId));
+
+  ipcMain.handle('auth:listUsers', () => listUsers(db));
+  ipcMain.handle('auth:saveUser', (_event, input: UserInput) => saveUser(db, repo, input));
+  ipcMain.handle('auth:deleteUser', (_event, id: string) => deleteUser(repo, id));
+
+  ipcMain.handle('auth:listRoles', () => listRoles(db));
+  ipcMain.handle('auth:saveRole', (_event, input: RoleInput) => saveRole(db, repo, input));
+  ipcMain.handle('auth:deleteRole', (_event, id: string) => deleteRole(db, repo, id));
+  ipcMain.handle('auth:rolePermissions', (_event, roleId: string) => rolePermissionKeys(db, roleId));
+  ipcMain.handle('auth:setRolePermissions', (_event, roleId: string, keys: string[]) =>
+    setRolePermissions(db, repo, roleId, keys ?? []),
+  );
 
   ipcMain.handle(
     'db:query',
