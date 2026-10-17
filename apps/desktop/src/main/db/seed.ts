@@ -17,11 +17,12 @@ const DEFAULT_UNITS: Array<[string, string]> = [
   ['u_kg', 'kg'],
 ];
 
-/** 默认仓库 / 客户 / 供应商：装好即可直接开单，无需先建档。 */
+/** 默认仓库 / 客户 / 供应商 / 部门：装好即可直接开单，无需先建档。 */
 const DEFAULT_BASIC_DATA: Array<{ entity: string; id: string; name: string }> = [
   { entity: 'warehouse', id: 'wh_default', name: '主仓库' },
   { entity: 'customer', id: 'cus_default', name: '普通客户' },
   { entity: 'supplier', id: 'sup_default', name: '普通供应商' },
+  { entity: 'department', id: 'dept_default', name: '默认部门' },
 ];
 
 /** 默认商品类别：装好即有可用类别，商品建档时可直接选用。 */

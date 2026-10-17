@@ -60,10 +60,17 @@ const docViews: Record<string, Component> = {
   '/purchase/orders': PurchaseOrdersView,
   '/purchase/inbound': PurchaseInboundView,
   '/purchase/production-in': ProductionInView,
+  '/purchase/returns': ReturnsView,
   '/sales/orders': SalesOrdersView,
   '/sales/outbound': SalesOutboundView,
   '/sales/dept-use': DeptUseView,
   '/sales/returns': ReturnsView,
+};
+
+/** 需要向页面传入路由参数的菜单（同一组件按方向复用，如采购退货 / 销售退货）。 */
+const docProps: Record<string, Record<string, unknown>> = {
+  '/purchase/returns': { kind: 'purchase_inbound' },
+  '/sales/returns': { kind: 'sales_outbound' },
 };
 
 /** P3 库存页面（实时库存 / 流水 / 预警 / 调拨 / 盘点）。 */
@@ -131,6 +138,7 @@ export const MENU: MenuGroup[] = [
     items: [
       { path: '/purchase/orders', title: '采购订单' },
       { path: '/purchase/inbound', title: '采购入库单' },
+      { path: '/purchase/returns', title: '采购退货' },
       { path: '/purchase/production-in', title: '生产入库单' },
     ],
   },
@@ -140,7 +148,7 @@ export const MENU: MenuGroup[] = [
       { path: '/sales/orders', title: '销售订单' },
       { path: '/sales/outbound', title: '销售出库单' },
       { path: '/sales/dept-use', title: '部门领用单' },
-      { path: '/sales/returns', title: '退货入库 / 退货出库' },
+      { path: '/sales/returns', title: '销售退货' },
     ],
   },
   {
@@ -198,7 +206,7 @@ const placeholderRoutes: RouteRecordRaw[] = MENU.flatMap((group) =>
       path: item.path.slice(1),
       name: item.path,
       component,
-      props: component === Placeholder ? { title: item.title } : {},
+      props: component === Placeholder ? { title: item.title } : docProps[item.path] ?? {},
       meta: { title: item.title, group: group.title },
     };
   }),

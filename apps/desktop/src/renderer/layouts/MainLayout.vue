@@ -68,7 +68,7 @@ async function logout(): Promise<void> {
         </div>
       </el-header>
       <el-main class="main">
-        <router-view />
+        <router-view :key="route.path" />
       </el-main>
     </el-container>
   </el-container>
